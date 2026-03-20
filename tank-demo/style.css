@@ -1,0 +1,445 @@
+:root {
+  /* 主背景（战场底色） */
+  --bg: #061b14;
+  /* HUD/面板背景与描边 */
+  --panel: rgba(6, 27, 20, 0.72);
+  --panelBorder: rgba(234, 255, 247, 0.18);
+  /* 文字颜色 */
+  --text: #eafff7;
+  /* 次级文字颜色 */
+  --muted: rgba(234, 255, 247, 0.72);
+  /* 强调色（绿色/道具/护盾高光） */
+  --accent: #46f6a7;
+  --accent2: #52b2ff;
+  /* 危险色（红色，血量临界/失败提示等） */
+  --danger: #ff4d6d;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+canvas#game {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  background: radial-gradient(1200px 600px at 20% 10%, rgba(70, 246, 167, 0.09), transparent 60%),
+    radial-gradient(1000px 800px at 90% 30%, rgba(82, 178, 255, 0.08), transparent 55%);
+}
+
+.mobileControls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+/* 移动端：左下角操作摇杆 */
+.joystick {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  width: 120px;
+  height: 120px;
+  border-radius: 999px;
+  background: rgba(6, 27, 20, 0.55);
+  border: 1px solid rgba(234, 255, 247, 0.16);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.joystick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 52px;
+  height: 52px;
+  margin-left: -26px;
+  margin-top: -26px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, rgba(234, 255, 247, 0.95), rgba(82, 178, 255, 0.25));
+  border: 1px solid rgba(82, 178, 255, 0.35);
+  box-shadow: inset 0 0 0 2px rgba(70, 246, 167, 0.10);
+  transform: translate(0px, 0px);
+}
+
+/* 移动端：右下角按钮（开火等） */
+.mobileBtns {
+  position: absolute;
+  right: 16px;
+  /* Align fire button center with joystick center */
+  bottom: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+  pointer-events: auto;
+}
+
+.mobileBtn {
+  border: 1px solid rgba(234, 255, 247, 0.18);
+  background: rgba(6, 27, 20, 0.65);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 13px;
+  backdrop-filter: blur(8px);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.mobileShoot {
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(82, 178, 255, 0.16), rgba(6, 27, 20, 0.55));
+  border-color: rgba(82, 178, 255, 0.45);
+  box-shadow:
+    0 16px 44px rgba(82, 178, 255, 0.16),
+    inset 0 0 0 1px rgba(234, 255, 247, 0.12);
+}
+
+.mobileShoot.shootFx {
+  animation: shootPulse 220ms ease-out;
+}
+
+.mobileShoot.shootFx::after {
+  animation: shootRipple 420ms ease-out;
+}
+
+.mobileShoot::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(82, 178, 255, 0.35);
+  box-shadow:
+    inset 0 0 0 2px rgba(234, 255, 247, 0.05),
+    0 0 26px rgba(82, 178, 255, 0.10);
+}
+
+.mobileShoot::after {
+  content: "";
+  position: absolute;
+  left: -20%;
+  top: -20%;
+  width: 140%;
+  height: 60%;
+  transform: rotate(-18deg);
+  background: linear-gradient(90deg, rgba(234, 255, 247, 0.35), transparent 60%);
+  opacity: 0.35;
+}
+
+@keyframes shootPulse {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  35% {
+    transform: scale(0.94);
+    filter: brightness(1.25);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes shootRipple {
+  0% {
+    opacity: 0.0;
+    transform: rotate(-18deg) scale(0.9) translateY(0px);
+  }
+  20% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(-18deg) scale(1.25) translateY(-6px);
+  }
+}
+
+.mobileRestart {
+  border-color: rgba(255, 77, 109, 0.34);
+  color: rgba(255, 199, 210, 0.95);
+}
+
+.hud {
+  position: absolute;
+  right: 14px;
+  left: auto;
+  top: 14px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  backdrop-filter: none;
+  display: grid;
+  grid-template-columns: auto auto auto;
+  grid-template-rows: auto auto;
+  grid-template-areas: "hp score enemy" "help help help";
+  align-items: start;
+  column-gap: 14px;
+  justify-content: end;
+}
+
+.hudStat {
+  padding: 0 10px 0 0;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  min-width: 0;
+}
+
+.hudInline {
+  display: inline-block;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.hudInline b {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.hudHp {
+  grid-area: hp;
+}
+
+.hudScore {
+  grid-area: score;
+}
+
+.hudEnemy {
+  grid-area: enemy;
+}
+
+.help {
+  grid-area: help;
+}
+
+.hudLabel {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.hudValue {
+  color: var(--text);
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.hudBar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(234, 255, 247, 0.10);
+  margin-top: 8px;
+  overflow: hidden;
+  border: none;
+  box-shadow: inset 0 0 0 1px rgba(234, 255, 247, 0.10);
+}
+
+.hudBarFill {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(70, 246, 167, 0.95), rgba(82, 178, 255, 0.95));
+  box-shadow: 0 0 18px rgba(70, 246, 167, 0.14);
+}
+
+.help {
+  color: var(--muted);
+  line-height: 1.3;
+  font-size: 12px;
+}
+
+.help-title {
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(5px);
+  z-index: 50;
+}
+
+.overlay[hidden] {
+  display: none;
+}
+
+.overlay-card {
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+  padding: 18px 18px 16px;
+  border-radius: 18px;
+  box-sizing: border-box;
+  background:
+    radial-gradient(900px 240px at 10% 0%, rgba(82, 178, 255, 0.18), transparent 55%),
+    radial-gradient(700px 260px at 92% 10%, rgba(70, 246, 167, 0.12), transparent 55%),
+    radial-gradient(420px 220px at 50% 120%, rgba(255, 77, 109, 0.10), transparent 60%),
+    linear-gradient(180deg, rgba(6, 27, 20, 0.86), rgba(6, 27, 20, 0.72));
+  border: 1px solid rgba(234, 255, 247, 0.18);
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.58),
+    0 0 0 1px rgba(82, 178, 255, 0.08) inset;
+  position: relative;
+}
+
+/* 光边：让弹框更有“游戏界面”质感 */
+.overlay-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 18px;
+  background: linear-gradient(
+    135deg,
+    rgba(82, 178, 255, 0.45),
+    rgba(70, 246, 167, 0.22),
+    rgba(255, 77, 109, 0.12)
+  );
+  pointer-events: none;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  padding: 1px;
+}
+
+.overlay-card {
+  scrollbar-width: none; /* Firefox */
+}
+
+.overlay-card::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+.overlayOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.overlayOptionBtn {
+  text-align: left;
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(234, 255, 247, 0.18);
+  background: linear-gradient(180deg, rgba(6, 27, 20, 0.45), rgba(6, 27, 20, 0.20));
+  color: var(--text);
+  font-size: 14px;
+  backdrop-filter: blur(8px);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.overlayOptionBtn:active {
+  transform: translateY(1px);
+}
+
+.overlay-title {
+  font-size: 20px;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+}
+
+.overlay-msg {
+  color: var(--text);
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
+
+.overlay-hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.overlayBtn {
+  margin-bottom: 10px;
+  width: 100%;
+  border: 1px solid rgba(82, 178, 255, 0.30);
+  background: linear-gradient(180deg, rgba(82, 178, 255, 0.18), rgba(6, 27, 20, 0.15));
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  backdrop-filter: blur(8px);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.overlayBtn:active {
+  transform: translateY(1px);
+}
+
+/* Mobile-first tuning: hide keyboard help, show touch controls */
+@media (max-width: 720px) {
+  .help {
+    display: none;
+  }
+  .hud {
+    max-width: none;
+  }
+  .mobileControls {
+    pointer-events: auto;
+    opacity: 1;
+  }
+
+  .hudLabel {
+    font-size: 11px;
+  }
+  .hudValue {
+    font-size: 13px;
+  }
+
+  .mobileBtns {
+    gap: 0;
+  }
+}
+
