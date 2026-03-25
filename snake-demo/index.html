@@ -7,39 +7,45 @@
     <link rel="stylesheet" href="./style.css?v=20260325-1" />
   </head>
   <body>
-    <div class="hud hud-right">
-      <div class="stats">
-        <span class="badge">关卡：<strong id="level">锂电池着火</strong></span>
-        <span class="badge">得分：<strong id="score">0</strong></span>
-      </div>
-    </div>
-
-    <div class="stage">
-      <div class="canvas-wrap">
-        <canvas id="game" width="576" height="576"></canvas>
+    <div class="snake-root">
+      <div class="snake__hud snake__hud--right">
+        <div class="snake__hud-stats">
+          <span class="snake__badge">关卡：<strong id="level">锂电池着火</strong></span>
+          <span class="snake__badge">得分：<strong id="score">0</strong></span>
+        </div>
       </div>
 
-      <div class="overlay" id="overlay">
-        <div class="overlay-inner" role="dialog" aria-modal="true">
-          <h2 id="overlay-title">暂停</h2>
-          <p id="overlay-text">空格暂停/继续，R 重开，M 切换模式</p>
-          <div class="overlay-content" id="overlay-content"></div>
-          <div class="overlay-actions">
-            <button class="overlay-primary-btn" type="button" id="overlay-start">
-              开始
-            </button>
+      <div class="snake">
+        <div class="snake__canvas">
+          <canvas class="snake__canvas-el" id="game" width="576" height="576"></canvas>
+        </div>
+
+        <div class="snake__overlay" id="overlay">
+          <div class="snake__overlay-card" role="dialog" aria-modal="true">
+            <h2 id="overlay-title">暂停</h2>
+            <p id="overlay-text">空格暂停/继续，R 重开，M 切换模式</p>
+            <div class="snake__overlay-content" id="overlay-content"></div>
+            <div class="snake__overlay-actions">
+              <button
+                class="snake__overlay-btn snake__overlay-btn--primary"
+                type="button"
+                id="overlay-start"
+              >
+                开始
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="mobile-controls" id="mobile-controls">
-        <div class="mobile-row">
-          <button class="dir-btn" type="button" data-dir="up" aria-label="上">↑</button>
-        </div>
-        <div class="mobile-row">
-          <button class="dir-btn" type="button" data-dir="left" aria-label="左">←</button>
-          <button class="dir-btn" type="button" data-dir="down" aria-label="下">↓</button>
-          <button class="dir-btn" type="button" data-dir="right" aria-label="右">→</button>
+        <div class="snake__controls" id="mobile-controls">
+          <div class="snake__controls-row">
+            <button class="snake__control-btn" type="button" data-dir="up" aria-label="上">↑</button>
+          </div>
+          <div class="snake__controls-row">
+            <button class="snake__control-btn" type="button" data-dir="left" aria-label="左">←</button>
+            <button class="snake__control-btn" type="button" data-dir="down" aria-label="下">↓</button>
+            <button class="snake__control-btn" type="button" data-dir="right" aria-label="右">→</button>
+          </div>
         </div>
       </div>
     </div>

@@ -564,12 +564,12 @@ class SnakeDemoGame {
     overlayText.textContent = String(subtitle || "");
     overlayContent.innerHTML = contentHtml ? String(contentHtml) : "";
     overlayStartBtn.style.display = showStart ? "inline-flex" : "none";
-    overlay.classList.add("show");
+    overlay.classList.add("snake__overlay--show");
   }
 
   function hideOverlay() {
     if (!overlay) return;
-    overlay.classList.remove("show");
+    overlay.classList.remove("snake__overlay--show");
   }
 
   function showStartOverlay() {
@@ -579,23 +579,24 @@ class SnakeDemoGame {
     const items = Array.isArray(levelData?.items) ? levelData.items : [];
 
     const content = `
-      <div class="item-grid">
+      <div class="snake__item-grid">
         ${items
           .map((it) => {
             const itemId = String(it?.id || "unknown");
             const label = String(it?.label || itemId);
             const pts = Number(it.points || 0);
-            const tone = pts > 0 ? "good" : pts < 0 ? "bad" : "neutral";
+            const tone =
+              pts > 0 ? "snake__item-points--good" : pts < 0 ? "snake__item-points--bad" : "";
             const sign = pts > 0 ? "+" : "";
             return `
-              <div class="item-row ${tone}">
-                <div class="item-icon" aria-hidden="true">${escapeHtml(getItemIcon(itemId))}</div>
-                <div class="item-main">
-                  <div class="item-title">
-                    <span class="item-name">${escapeHtml(label)}</span>
-                    <span class="item-points ${tone}">${escapeHtml(`${sign}${pts} 分`)}</span>
+              <div class="snake__item-row">
+                <div class="snake__item-icon" aria-hidden="true">${escapeHtml(getItemIcon(itemId))}</div>
+                <div class="snake__item-main">
+                  <div class="snake__item-title">
+                    <span class="snake__item-name">${escapeHtml(label)}</span>
+                    <span class="snake__item-points ${tone}">${escapeHtml(`${sign}${pts} 分`)}</span>
                   </div>
-                  <div class="item-desc">${escapeHtml(describeItemEffect(itemId, pts))}</div>
+                  <div class="snake__item-desc">${escapeHtml(describeItemEffect(itemId, pts))}</div>
                 </div>
               </div>
             `;
@@ -955,13 +956,13 @@ class SnakeDemoGame {
     handlers.mobilePointerDown = (event) => {
       const button = event.target.closest("[data-dir]");
       if (!button) return;
-      button.classList.add("pressed");
+      button.classList.add("snake__control-btn--pressed");
     };
 
     handlers.mobilePointerUp = (event) => {
       const button = event.target.closest("[data-dir]");
       if (!button) return;
-      button.classList.remove("pressed");
+      button.classList.remove("snake__control-btn--pressed");
     };
 
     handlers.touchstart = (event) => {
