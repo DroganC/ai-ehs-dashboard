@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN" id="top">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI OPENCODE HUB · AI 社区</title>
+    <meta
+      name="description"
+      content="AI OPENCODE HUB 是面向开发者与创作者的中文 AI 社区：连接灵感、项目与实践，一起把模型与工具用起来。"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&family=Newsreader:ital,opsz,wght@0,8..72,400;0,8..72,600;1,8..72,400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="page-skip-link" href="#main-content">跳到主要内容</a>
+    <div class="page-noise" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a class="site-header__logo" href="#" aria-label="AI OPENCODE HUB 首页">
+          <span class="site-header__logo-text" aria-hidden="true"></span>
+        </a>
+        <nav class="site-header__nav" aria-label="主导航">
+          <a class="site-header__nav-link" href="#capabilities">社区能力</a>
+          <a class="site-header__nav-link" href="#workflow">如何加入</a>
+          <a class="site-header__nav-link" href="#cta">加入社群</a>
+        </nav>
+        <a class="site-header__login btn btn--ghost" href="#cta">登录</a>
+      </div>
+    </header>
+
+    <main id="main-content" tabindex="-1" aria-label="主要内容">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero__grid" aria-hidden="true"></div>
+        <p class="hero__eyebrow">开放协作 · 开发者与创作者 · 中文 AI 社区</p>
+        <h1
+          id="hero-title"
+          class="hero__title"
+          aria-label="主标题：AI HUB 与 AI OPENCODE 交替展示，把灵感接成作品"
+        >
+          <span class="hero__title-accent" aria-hidden="true"></span>
+          <br />
+          把灵感接成作品
+        </h1>
+        <p class="hero__lede">
+          AI OPENCODE HUB（AI 社区）汇聚讨论、活动与资源库：分享你的实验、模型与落地踩坑，让下一次迭代有人一起讨论、一起推进。
+        </p>
+        <dl class="hero__stats">
+          <div class="hero__stat">
+            <dt class="hero__stat-label">业务领域</dt>
+            <dd class="hero__stat-value">18</dd>
+          </div>
+          <div class="hero__stat">
+            <dt class="hero__stat-label">业务部门</dt>
+            <dd class="hero__stat-value">42</dd>
+          </div>
+          <div class="hero__stat">
+            <dt class="hero__stat-label">案例数量</dt>
+            <dd class="hero__stat-value">1,280+</dd>
+          </div>
+        </dl>
+        <div class="hero__actions">
+          <a class="btn btn--primary" href="#cta">提报案例</a>
+        </div>
+      </section>
+
+      <section
+        id="showcase"
+        class="hero-carousel"
+        aria-labelledby="carousel-title"
+        data-hero-carousel
+      >
+        <header class="hero-carousel__head">
+          <h2 id="carousel-title" class="hero-carousel__heading">优秀案例</h2>
+          <p class="hero-carousel__intro">
+            从线上讨论到线下见面，同一套身份与信用，让连接发生在内容里、活动里、项目里。
+          </p>
+        </header>
+        <div class="hero-carousel__frame">
+          <div
+            class="hero-carousel__marquee"
+            id="hero-carousel-marquee"
+            role="region"
+            aria-labelledby="carousel-title"
+          >
+            <div class="hero-carousel__track" id="hero-carousel-track">
+              <article
+                class="hero-carousel__card hero-carousel__card--a"
+                aria-label="讨论区：主题清晰，长文友好"
+                data-carousel-slide
+              >
+                <div class="hero-carousel__card-shot">
+                  <div class="hero-carousel__card-chrome">
+                    <span class="hero-carousel__chrome-dots" aria-hidden="true"></span>
+                    <span class="hero-carousel__tag">讨论区</span>
+                  </div>
+                  <div class="hero-carousel__card-visual" aria-hidden="true"></div>
+                </div>
+                <div class="hero-carousel__card-body">
+                  <h3 class="hero-carousel__card-title">主题清晰，长文友好</h3>
+                  <p class="hero-carousel__card-desc">
+                    按「模型 / 数据 / 工程 / 产品 / 职业」分区沉淀，优质回答可收录进知识库。
+                  </p>
+                </div>
+              </article>
+              <article
+                class="hero-carousel__card hero-carousel__card--b"
+                aria-label="活动：Meetup · 黑客松 · 共读"
+                data-carousel-slide
+              >
+                <div class="hero-carousel__card-shot">
+                  <div class="hero-carousel__card-chrome">
+                    <span class="hero-carousel__chrome-dots" aria-hidden="true"></span>
+                    <span class="hero-carousel__tag">活动</span>
+                  </div>
+                  <div class="hero-carousel__card-visual" aria-hidden="true"></div>
+                </div>
+                <div class="hero-carousel__card-body">
+                  <h3 class="hero-carousel__card-title">Meetup · 黑客松 · 共读</h3>
+                  <p class="hero-carousel__card-desc">
+                    线上直播与线下城市局同一日历，报名、签到与资料回放集中管理。
+                  </p>
+                </div>
+              </article>
+              <article
+                class="hero-carousel__card hero-carousel__card--c"
+                aria-label="资源库：模型卡片与工具榜单"
+                data-carousel-slide
+              >
+                <div class="hero-carousel__card-shot">
+                  <div class="hero-carousel__card-chrome">
+                    <span class="hero-carousel__chrome-dots" aria-hidden="true"></span>
+                    <span class="hero-carousel__tag">资源库</span>
+                  </div>
+                  <div class="hero-carousel__card-visual" aria-hidden="true"></div>
+                </div>
+                <div class="hero-carousel__card-body">
+                  <h3 class="hero-carousel__card-title">模型卡片与工具榜单</h3>
+                  <p class="hero-carousel__card-desc">
+                    社区共建的模型说明、评测维度与教程索引，工具与工作流由使用者投票与维护。
+                  </p>
+                </div>
+              </article>
+              <article
+                class="hero-carousel__card hero-carousel__card--d"
+                aria-label="精选：周报与深度稿"
+                data-carousel-slide
+              >
+                <div class="hero-carousel__card-shot">
+                  <div class="hero-carousel__card-chrome">
+                    <span class="hero-carousel__chrome-dots" aria-hidden="true"></span>
+                    <span class="hero-carousel__tag">精选</span>
+                  </div>
+                  <div class="hero-carousel__card-visual" aria-hidden="true"></div>
+                </div>
+                <div class="hero-carousel__card-body">
+                  <h3 class="hero-carousel__card-title">周报与深度稿</h3>
+                  <p class="hero-carousel__card-desc">
+                    编辑与志愿者整理本周论文、版本更新与监管动态；长文支持目录锚点引用。
+                  </p>
+                </div>
+              </article>
+              <article
+                class="hero-carousel__card hero-carousel__card--e"
+                aria-label="共建：开源与招募板"
+                data-carousel-slide
+              >
+                <div class="hero-carousel__card-shot">
+                  <div class="hero-carousel__card-chrome">
+                    <span class="hero-carousel__chrome-dots" aria-hidden="true"></span>
+                    <span class="hero-carousel__tag">共建</span>
+                  </div>
+                  <div class="hero-carousel__card-visual" aria-hidden="true"></div>
+                </div>
+                <div class="hero-carousel__card-body">
+                  <h3 class="hero-carousel__card-title">开源与招募板</h3>
+                  <p class="hero-carousel__card-desc">
+                    仓库与贡献指南一键挂上，招募协作者时带上项目背景与技术栈。
+                  </p>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="capabilities" class="section section--capabilities" aria-labelledby="capabilities-title">
+        <header class="section__head">
+          <h2 id="capabilities-title" class="section__title">为不同角色留出空间</h2>
+          <p class="section__desc">
+            研究者、工程师、设计师与业务方都能在这里找到对话语境，而不是被塞进同一个「大杂烩」标签。
+          </p>
+        </header>
+        <ul class="bento">
+          <li class="bento__card bento__card--wide">
+            <article>
+              <p class="bento__tag">学习</p>
+              <h3 class="bento__title">路径与专题串讲</h3>
+              <p class="bento__text">
+                从「第一次部署模型」到「评测与安全红线」，专题由社区编辑与志愿者共同维护，支持按难度与前置知识筛选。
+              </p>
+            </article>
+          </li>
+          <li class="bento__card">
+            <article>
+              <p class="bento__tag">小组</p>
+              <h3 class="bento__title">兴趣与地域小组</h3>
+              <p class="bento__text">
+                城市局、读书会、垂直行业（医疗 / 制造 / 教育）小组独立首页，公告与精华帖不淹没在全局信息流里。
+              </p>
+            </article>
+          </li>
+          <li class="bento__card">
+            <article>
+              <p class="bento__tag">作品</p>
+              <h3 class="bento__title">项目 Showcase</h3>
+              <p class="bento__text">
+                开源仓库、演示链接与一篇「我解决了什么问题」并列展示，方便他人 fork、共创或招聘侧发现你。
+              </p>
+            </article>
+          </li>
+          <li class="bento__card bento__card--tall">
+            <article>
+              <p class="bento__tag">互助</p>
+              <h3 class="bento__title">问答与 Office Hour</h3>
+              <p class="bento__text">
+                悬赏与认领机制减少重复劳动；定期 Office Hour 由资深成员值班，把「一句话说不清的问题」拉到语音里对齐上下文。
+              </p>
+            </article>
+          </li>
+        </ul>
+      </section>
+
+      <section id="workflow" class="section section--workflow" aria-labelledby="workflow-title">
+        <header class="section__head section__head--light">
+          <h2 id="workflow-title" class="section__title">四步开始参与</h2>
+          <p class="section__desc">轻量入驻，重内容沉淀；你可以只潜水，也可以在准备好时一次把作品推上 Showcase。</p>
+        </header>
+        <ol class="steps">
+          <li class="steps__item">
+            <span class="steps__index" aria-hidden="true">01</span>
+            <span class="visually-hidden">第 1 步：</span>
+            <strong class="steps__title">注册</strong>
+            <span class="steps__detail">邮箱 / GitHub / 企业 SSO</span>
+          </li>
+          <li class="steps__item">
+            <span class="steps__index" aria-hidden="true">02</span>
+            <span class="visually-hidden">第 2 步：</span>
+            <strong class="steps__title">画像</strong>
+            <span class="steps__detail">角色、技术栈与关注领域</span>
+          </li>
+          <li class="steps__item">
+            <span class="steps__index" aria-hidden="true">03</span>
+            <span class="visually-hidden">第 3 步：</span>
+            <strong class="steps__title">参与</strong>
+            <span class="steps__detail">发帖、评论、活动报名</span>
+          </li>
+          <li class="steps__item">
+            <span class="steps__index" aria-hidden="true">04</span>
+            <span class="visually-hidden">第 4 步：</span>
+            <strong class="steps__title">共建</strong>
+            <span class="steps__detail">专题编辑、资源贡献、城市组织者</span>
+          </li>
+        </ol>
+      </section>
+
+      <section class="quote" aria-labelledby="quote-heading">
+        <h2 id="quote-heading" class="visually-hidden">社区声音</h2>
+        <figure class="quote__figure">
+          <blockquote class="quote__inner">
+            <p class="quote__text">
+              「我需要的不是又一个资讯聚合，而是能追问、能复盘、能约到人的场域——AI OPENCODE HUB 把『人』和『上下文』留在同一条时间线里。」
+            </p>
+          </blockquote>
+          <figcaption class="quote__figcaption">
+            <cite class="quote__cite">— 社区成员 · 独立开发者</cite>
+          </figcaption>
+        </figure>
+      </section>
+
+      <section id="cta" class="cta" aria-labelledby="cta-title">
+        <div class="cta__inner">
+          <h2 id="cta-title" class="cta__title">加入 AI OPENCODE HUB 邮件列表</h2>
+          <p class="cta__lede">内测开放、城市活动与季度共建计划会优先通过邮件同步；我们不会把你的地址卖给第三方。</p>
+          <form class="cta__form" action="#" method="post" aria-describedby="cta-fineprint">
+            <label class="visually-hidden" for="email">工作邮箱</label>
+            <input
+              id="email"
+              class="cta__input"
+              name="email"
+              type="email"
+              required
+              placeholder="name@company.com"
+              autocomplete="email"
+              inputmode="email"
+            />
+            <button class="cta__submit btn btn--primary" type="submit">订阅</button>
+          </form>
+          <p id="cta-fineprint" class="cta__fineprint">当前页面为展示稿，提交仅作前端演示。</p>
+        </div>
+      </section>
+    </main>
+
+    <a
+      class="back-to-top"
+      id="back-to-top"
+      href="#top"
+      aria-label="返回页面顶部"
+      title="返回顶部"
+    >
+      <svg class="back-to-top__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+        <path
+          d="M12 5.5l6.5 6.5a.9.9 0 01-1.28 1.28L12 8.35l-5.22 4.93a.9.9 0 11-1.28-1.28L12 5.5z"
+          fill="currentColor"
+        />
+      </svg>
+    </a>
+
+    <footer class="site-footer">
+      <small class="site-footer__copy">© AI OPENCODE HUB · AI 社区</small>
+      <span class="site-footer__sep" aria-hidden="true">·</span>
+      <nav class="site-footer__nav" aria-label="页脚链接">
+        <a class="site-footer__link" href="#">行为准则</a>
+        <a class="site-footer__link" href="#">隐私</a>
+      </nav>
+    </footer>
+
+    <script src="./main.js" type="module"></script>
+  </body>
+</html>
