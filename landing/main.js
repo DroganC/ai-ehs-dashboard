@@ -1,6 +1,21 @@
 /**
- * Landing: header scroll collapse, marquee carousel clone, CTA form stub.
+ * Landing 页脚本（单页一次性初始化）。
+ *
+ * ## 生命周期
+ * - 加载末尾执行一次 `init()`；无 SPA 二次挂载，故不做通用 teardown（除轮播）。
+ *
+ * ## 资源与泄漏
+ * - **轮播**：`pagehide` 时 `teardownHeroCarousel` 清除定时器、rAF、`IntersectionObserver`，并用
+ *   `AbortController` 卸掉 `resize`；同时 `removeEventListener(transitionend)`，避免打断动画后的误触发。
+ * - **全局 reveal**：`IntersectionObserver` 模块级单例；各节点触发后 `unobserve`，回调次数有界。
+ * - **scroll / Tab / 表单**：与文档同寿命；表单为单次 `submit` 监听。
+ *
+ * ## 闭包与性能
+ * - 各 `init*` 内嵌函数只捕获本模块 DOM 与标量状态，无每帧新建大对象。
+ * - 轮播中 `onCarouselResize`、`advanceOne`、`onTrackTransitionEnd` 等为**固定函数引用**，便于
+ *   `add/removeEventListener` 与浏览器优化；景深用 rAF 链 + 不可见时降频。
  */
+
 const prefersReduced =
   typeof matchMedia !== "undefined" &&
   matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -11,6 +26,11 @@ const SITE_NAME_LOGO = "AI OPENCODE HUB";
 /** Hero 主标题高亮区循环：AI HUB ↔ AI OPENCODE */
 const HERO_ACCENT_CYCLE = ["AI HUB", "AI OPENCODE"];
 
+/**
+ * Hero 标题高亮打字机：在两个字串间插入/删除字符。
+ * - 链式 `setTimeout`（非 `setInterval`），停顿可随机化。
+ * - 与页面同寿命；负载低，未在 `pagehide` 清理 pending timer（离开页即销毁）。
+ */
 function initHeroAccentTypewriter() {
   const accent = document.querySelector(".hero__title-accent");
   if (!accent) return;
@@ -52,6 +72,9 @@ function initHeroAccentTypewriter() {
   step();
 }
 
+/**
+ * 头部 Logo 打字动画；完成后为 `link` 添加 `site-header__logo--typing-done`。
+ */
 function initHeaderTypewriter() {
   const link = document.querySelector(".site-header__logo");
   const el = document.querySelector(".site-header__logo-text");
@@ -79,6 +102,9 @@ function initHeaderTypewriter() {
   step();
 }
 
+/**
+ * 区块首次进入视口时添加 `reveal--visible`；每个节点触发后立即 `unobserve`，保证回调最多一次/节点。
+ */
 const observer = new IntersectionObserver(
   (entries) => {
     for (const entry of entries) {
@@ -91,7 +117,7 @@ const observer = new IntersectionObserver(
 );
 
 function initReveal() {
-  /* 减少动态效果：不注入 reveal 样式，内容默认可见（.reveal 仅在下文添加） */
+  /* 减少动态效果：不注入 reveal 样式，内容默认可见 */
   if (prefersReduced) return;
 
   const style = document.createElement("style");
@@ -107,6 +133,7 @@ function initReveal() {
     ".hero__lede",
     ".hero__actions",
     ".hero__stats",
+    ".showcase__tabs-wrap",
     ".hero-carousel__head",
     ".hero-carousel__frame",
     ".section__head",
@@ -127,6 +154,10 @@ function initReveal() {
   }
 }
 
+/**
+ * CTA 表单占位：阻止默认提交，展示成功态后恢复。
+ * 注：极快连点提交可能叠多个 `setTimeout`；落地演示可接受，若接真实接口应 `debounce` 或禁用按钮至请求结束。
+ */
 function initForm() {
   const form = document.querySelector(".cta__form");
   if (!form) return;
@@ -148,6 +179,10 @@ function initForm() {
   });
 }
 
+/**
+ * 向下滚动且超过阈值时收起头部；向上滚或回顶则展开。
+ * `lastY` 与 `scroll` 回调闭包在同一次 `init` 内，无全局可变共享。
+ */
 function initHeaderScroll() {
   const header = document.querySelector(".site-header");
   if (!header) return;
@@ -172,14 +207,36 @@ function initHeaderScroll() {
 }
 
 /**
- * 无缝循环：复制一组卡片接在末尾，配合 CSS translateX(-50%) 与 linear 动画。
- * 开启「减少动态效果」时不克隆、不运行动画（由 CSS 处理）。
+ * 优秀案例轮播（单入口）：克隆接尾 + 按格步进 + 视口中心景深。
+ *
+ * 状态机要点：
+ * - `slideIndex`：当前对齐第几张原卡（0…n-1）。末卡下一步先 **动画到 loopW**（与克隆首帧对齐），
+ *   在 `onLoopWrapTransitionEnd` 里 **无过渡 translate(0)**，再进入停顿与下一轮。
+ * - `transitionend` 仅处理 `target === track` 且 `propertyName === "transform"`，避免子节点冒泡误触发。
+ * - 监听使用 `{ once: true }`；**resize / pagehide** 前仍须 `removeEventListener`，否则打断的 transition 可能补发 end。
+ *
+ * 位移计算：`offsetForSlideIndex` / `loopWidthPx` 用 `offsetLeft` 与首克隆，与 flex+gap 实际布局一致。
  */
-function initHeroCarousel() {
-  const track = document.getElementById("hero-carousel-track");
-  if (!track || prefersReduced) return;
+const HERO_CAROUSEL = {
+  transitionMs: 300,
+  idleMsAfterTransition: 1500,
+  firstStepDelayMs: 0,
+  depthScaleMin: 0.66,
+  depthScaleRange: 0.34,
+  depthRotateYMax: 12,
+  depthIdlePollMs: 240,
+};
 
-  const originals = track.querySelectorAll("[data-carousel-slide]");
+function initHeroCarousel() {
+  if (prefersReduced) return;
+
+  const track = document.getElementById("hero-carousel-track");
+  const marquee = document.getElementById("hero-carousel-marquee");
+  if (!track || !marquee) return;
+
+  const originals = Array.from(track.querySelectorAll("[data-carousel-slide]")).filter(
+    (el) => !el.hasAttribute("data-carousel-clone")
+  );
   if (originals.length === 0) return;
 
   originals.forEach((node) => {
@@ -188,101 +245,293 @@ function initHeroCarousel() {
     copy.setAttribute("aria-hidden", "true");
     track.appendChild(copy);
   });
-}
 
-/**
- * 视差式环绕：以跑马灯可视区域水平中心为轴，动态 scale + rotateY。
- * mode "center-focus"：中间大、两侧小（默认 Cover Flow 感）
- * mode "edge-focus"：两侧大、中间小（凹弧 / 隧道感）
- */
-function initHeroCarouselDepth() {
-  if (prefersReduced) return;
+  /** 原卡 + 克隆，景深每帧遍历（NodeList 在克隆后固定） */
+  const cards = track.querySelectorAll(".hero-carousel__card");
+  if (cards.length === 0) return;
 
-  const marquee = document.getElementById("hero-carousel-marquee");
-  const track = document.getElementById("hero-carousel-track");
-  if (!marquee || !track) return;
-
-  /** @type {"center-focus" | "edge-focus"} */
-  const mode = "center-focus";
-
-  /** 克隆完成后一次性缓存，避免每帧 querySelectorAll */
-  const cardElements = track.querySelectorAll(".hero-carousel__card");
-  if (cardElements.length === 0) return;
-
-  let visible = true;
-  /** 隔帧更新景深，减轻 layout + 合成压力（轨道 CSS 动画仍为 60fps） */
-  let depthFrame = 0;
-
-  const io = new IntersectionObserver(
-    (entries) => {
-      visible = entries.some((e) => e.isIntersecting);
-    },
-    { root: null, threshold: 0, rootMargin: "80px" }
-  );
-  io.observe(marquee);
-
+  const cfg = HERO_CAROUSEL;
+  const transitionEase = `transform ${cfg.transitionMs}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+  const pauseAfterTransitionMs = cfg.idleMsAfterTransition;
   const halfPi = Math.PI * 0.5;
 
-  function applyDepth() {
+  let offsetPx = 0;
+  let slideIndex = 0;
+  let firstKickTimer = 0;
+  let pauseTimer = 0;
+  let depthRafId = 0;
+  let depthIdleTimer = 0;
+
+  let marqueeVisible = true;
+  let depthFrame = 0;
+
+  const marqueeIo = new IntersectionObserver(
+    (entries) => {
+      marqueeVisible = entries.some((e) => e.isIntersecting);
+    },
+    { threshold: 0, rootMargin: "80px" }
+  );
+  marqueeIo.observe(marquee);
+
+  function readGapPx() {
+    const s = window.getComputedStyle(track);
+    return parseFloat(s.columnGap || s.gap) || 0;
+  }
+
+  function loopWidthPx() {
+    const first = originals[0];
+    const cloneFirst = track.querySelector("[data-carousel-clone]");
+    if (cloneFirst) return cloneFirst.offsetLeft - first.offsetLeft;
+    const gap = readGapPx();
+    let px = 0;
+    for (let i = 0; i < originals.length; i++) {
+      px += originals[i].offsetWidth;
+      if (i < originals.length - 1) px += gap;
+    }
+    return px;
+  }
+
+  function offsetForSlideIndex(s) {
+    const first = originals[0];
+    if (s <= 0) return 0;
+    const n = originals.length;
+    if (s >= n) return loopWidthPx();
+    return originals[s].offsetLeft - first.offsetLeft;
+  }
+
+  function applyTrackTransform(px, animate) {
+    track.style.transition = animate ? transitionEase : "none";
+    track.style.transform = `translate3d(${-px}px, 0, 0)`;
+  }
+
+  function applyCardDepth() {
     const rect = marquee.getBoundingClientRect();
     const halfW = rect.width * 0.5;
     if (halfW < 8) return;
 
     const centerX = rect.left + halfW;
 
-    for (let i = 0; i < cardElements.length; i++) {
-      const card = cardElements[i];
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i];
       const cr = card.getBoundingClientRect();
       if (cr.width < 4) continue;
 
-      const cardCenterX = cr.left + cr.width * 0.5;
-      let t = (cardCenterX - centerX) / halfW;
-      if (t < -1) t = -1;
-      if (t > 1) t = 1;
-
+      let t = (cr.left + cr.width * 0.5 - centerX) / halfW;
+      t = Math.max(-1, Math.min(1, t));
       const u = Math.abs(t);
 
-      let scale;
-      if (mode === "center-focus") {
-        scale = 0.82 + 0.18 * Math.cos(u * halfPi);
-      } else {
-        scale = 0.82 + 0.18 * Math.sin(u * halfPi);
-      }
-
-      const rotateY = -t * 9;
+      const scale = cfg.depthScaleMin + cfg.depthScaleRange * Math.cos(u * halfPi);
+      const rotateY = -t * cfg.depthRotateYMax;
       card.style.transform = `translate3d(0, 0, 0) rotateY(${rotateY}deg) scale(${scale})`;
       card.style.zIndex = String(Math.round(10 + 90 * (1 - u)));
     }
   }
 
-  /** 不可见时降频，避免 60fps 空转 rAF */
-  const idlePollMs = 240;
+  function stopDepthLoop() {
+    cancelAnimationFrame(depthRafId);
+    clearTimeout(depthIdleTimer);
+    depthRafId = 0;
+    depthIdleTimer = 0;
+  }
 
-  function tick() {
-    if (!visible || document.hidden) {
-      window.setTimeout(() => requestAnimationFrame(tick), idlePollMs);
+  function depthTick() {
+    if (!marqueeVisible || document.hidden) {
+      depthIdleTimer = window.setTimeout(() => {
+        depthIdleTimer = 0;
+        depthRafId = requestAnimationFrame(depthTick);
+      }, cfg.depthIdlePollMs);
       return;
     }
     depthFrame += 1;
     if (depthFrame % 2 !== 0) {
-      requestAnimationFrame(tick);
+      depthRafId = requestAnimationFrame(depthTick);
       return;
     }
-    applyDepth();
-    requestAnimationFrame(tick);
+    applyCardDepth();
+    depthRafId = requestAnimationFrame(depthTick);
   }
 
-  requestAnimationFrame(tick);
+  function onTrackTransitionEnd(ev) {
+    if (ev.target !== track || ev.propertyName !== "transform") return;
+    applyCardDepth();
+    pauseTimer = window.setTimeout(() => {
+      pauseTimer = 0;
+      advanceOne();
+    }, pauseAfterTransitionMs);
+  }
+
+  function onLoopWrapTransitionEnd(ev) {
+    if (ev.target !== track || ev.propertyName !== "transform") return;
+    applyTrackTransform(0, false);
+    offsetPx = 0;
+    slideIndex = 0;
+    void track.offsetHeight;
+    track.style.transition = transitionEase;
+    applyCardDepth();
+    pauseTimer = window.setTimeout(() => {
+      pauseTimer = 0;
+      advanceOne();
+    }, pauseAfterTransitionMs);
+  }
+
+  function advanceOne() {
+    const n = originals.length;
+    const loopW = loopWidthPx();
+
+    if (n === 0 || loopW <= 0) {
+      firstKickTimer = window.setTimeout(advanceOne, cfg.idleMsAfterTransition);
+      return;
+    }
+
+    if (slideIndex === n - 1) {
+      offsetPx = loopW;
+      applyTrackTransform(offsetPx, true);
+      track.addEventListener("transitionend", onLoopWrapTransitionEnd, { once: true });
+      return;
+    }
+
+    slideIndex += 1;
+    offsetPx = offsetForSlideIndex(slideIndex);
+    applyTrackTransform(offsetPx, true);
+    track.addEventListener("transitionend", onTrackTransitionEnd, { once: true });
+  }
+
+  applyTrackTransform(0, false);
+  offsetPx = 0;
+  slideIndex = 0;
+  void track.offsetHeight;
+  track.style.transition = transitionEase;
+
+  firstKickTimer = window.setTimeout(() => {
+    firstKickTimer = 0;
+    advanceOne();
+  }, cfg.firstStepDelayMs);
+
+  depthRafId = requestAnimationFrame(depthTick);
+
+  /** 重建 loopW / 步长；先卸 transitionend，避免 resize 打断动画后重复触发 advanceOne。 */
+  function onCarouselResize() {
+    track.removeEventListener("transitionend", onTrackTransitionEnd);
+    track.removeEventListener("transitionend", onLoopWrapTransitionEnd);
+    window.clearTimeout(firstKickTimer);
+    window.clearTimeout(pauseTimer);
+    pauseTimer = 0;
+    stopDepthLoop();
+
+    offsetPx = 0;
+    slideIndex = 0;
+    track.style.transition = "none";
+    applyTrackTransform(0, false);
+    void track.offsetHeight;
+    track.style.transition = transitionEase;
+    applyCardDepth();
+
+    firstKickTimer = window.setTimeout(() => {
+      firstKickTimer = 0;
+      advanceOne();
+    }, cfg.firstStepDelayMs);
+
+    depthRafId = requestAnimationFrame(depthTick);
+  }
+
+  const resizeAbort = new AbortController();
+
+  /** 离开页：清定时器、景深、IO、resize signal；卸 transitionend。 */
+  function teardownHeroCarousel() {
+    track.removeEventListener("transitionend", onTrackTransitionEnd);
+    track.removeEventListener("transitionend", onLoopWrapTransitionEnd);
+    window.clearTimeout(firstKickTimer);
+    firstKickTimer = 0;
+    window.clearTimeout(pauseTimer);
+    pauseTimer = 0;
+    stopDepthLoop();
+    marqueeIo.disconnect();
+    resizeAbort.abort();
+  }
+
+  window.addEventListener("resize", onCarouselResize, { passive: true, signal: resizeAbort.signal });
+  window.addEventListener("pagehide", teardownHeroCarousel, { once: true });
 }
 
+/**
+ * 首屏 Tab：`data-showcase-tab` → `dataset.showcaseTab`（cases | rankings）。
+ * - `applySelection`：同步 `aria-selected`、`tabIndex`（仅当前选中有 0）、`hidden` 两个 panel。
+ * - 鼠标点击：`selectIndex(..., false)`，焦点由浏览器落在被点按钮上，无需再 `focus()`。
+ * - 键盘：`selectIndex(..., true)` 显式 `focus` 下一项，满足 roving tabindex。
+ */
+function initShowcaseTabs() {
+  const tablist = document.querySelector("[data-showcase-tabs]");
+  if (!tablist) return;
+
+  const tabs = Array.from(tablist.querySelectorAll('[role="tab"]'));
+  const panelCases = document.getElementById("showcase-panel-cases");
+  const panelRankings = document.getElementById("showcase-panel-rankings");
+  if (!panelCases || !panelRankings || tabs.length === 0) return;
+
+  function applySelection(index) {
+    const i = ((index % tabs.length) + tabs.length) % tabs.length;
+    const tab = tabs[i];
+    const name = tab.dataset.showcaseTab;
+
+    tabs.forEach((t, idx) => {
+      const selected = idx === i;
+      t.setAttribute("aria-selected", String(selected));
+      t.tabIndex = selected ? 0 : -1;
+    });
+
+    const showCases = name === "cases";
+    panelCases.hidden = !showCases;
+    panelRankings.hidden = showCases;
+  }
+
+  function selectIndex(index, focusTab) {
+    applySelection(index);
+    if (focusTab) {
+      const i = ((index % tabs.length) + tabs.length) % tabs.length;
+      tabs[i].focus();
+    }
+  }
+
+  tablist.addEventListener("click", (e) => {
+    const tab = e.target.closest('[role="tab"]');
+    if (!tab || !tablist.contains(tab)) return;
+    const idx = tabs.indexOf(tab);
+    if (idx >= 0) selectIndex(idx, false);
+  });
+
+  tablist.addEventListener("keydown", (e) => {
+    const focused = document.activeElement;
+    const idx = tabs.indexOf(focused);
+    if (idx < 0) return;
+
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      e.preventDefault();
+      selectIndex(idx + 1, true);
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      e.preventDefault();
+      selectIndex(idx - 1, true);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      selectIndex(0, true);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      selectIndex(tabs.length - 1, true);
+    }
+  });
+}
+
+/**
+ * 初始化顺序：`initShowcaseTabs` 在 `initHeroCarousel` 之前，保证 DOM 中 Tab 与面板已就绪；
+ * 轮播依赖 `#hero-carousel-track` 等 id，与 Tab 无竞态。
+ */
 function init() {
   initHeaderTypewriter();
   initHeroAccentTypewriter();
   initReveal();
   initForm();
   initHeaderScroll();
+  initShowcaseTabs();
   initHeroCarousel();
-  initHeroCarouselDepth();
 }
 
 init();

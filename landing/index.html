@@ -69,121 +69,225 @@
         </div>
       </section>
 
-      <section
-        id="showcase"
-        class="hero-carousel"
-        aria-labelledby="carousel-title"
-        data-hero-carousel
-      >
-        <header class="hero-carousel__head">
-          <h2 id="carousel-title" class="hero-carousel__heading">优秀案例</h2>
-          <p class="hero-carousel__intro">
-            从线上讨论到线下见面，同一套身份与信用，让连接发生在内容里、活动里、项目里。
-          </p>
-        </header>
-        <div class="hero-carousel__frame">
+      <section class="showcase" id="showcase" aria-label="案例展示与排行">
+        <div class="showcase__tabs-wrap">
           <div
-            class="hero-carousel__marquee"
-            id="hero-carousel-marquee"
-            role="region"
-            aria-labelledby="carousel-title"
+            class="showcase__tabs"
+            role="tablist"
+            aria-label="切换展示内容"
+            data-showcase-tabs
           >
-            <div class="hero-carousel__track" id="hero-carousel-track">
-              <article
-                class="hero-carousel__card hero-carousel__card--a"
-                aria-label="讨论区：主题清晰，长文友好"
-                data-carousel-slide
+            <button
+              type="button"
+              class="showcase__tab"
+              id="showcase-tab-cases"
+              role="tab"
+              aria-selected="true"
+              aria-controls="showcase-panel-cases"
+              data-showcase-tab="cases"
+            >
+              优秀案例
+            </button>
+            <button
+              type="button"
+              class="showcase__tab"
+              id="showcase-tab-rankings"
+              role="tab"
+              aria-selected="false"
+              aria-controls="showcase-panel-rankings"
+              tabindex="-1"
+              data-showcase-tab="rankings"
+            >
+              排行榜
+            </button>
+          </div>
+        </div>
+
+        <div
+          id="showcase-panel-cases"
+          class="showcase__panel"
+          role="tabpanel"
+          aria-labelledby="showcase-tab-cases"
+        >
+          <div class="hero-carousel" data-hero-carousel>
+            <header class="hero-carousel__head">
+              <h2 id="carousel-title" class="hero-carousel__heading">优秀案例</h2>
+              <p class="hero-carousel__intro">
+                从线上讨论到线下见面，同一套身份与信用，让连接发生在内容里、活动里、项目里。
+              </p>
+            </header>
+            <div class="hero-carousel__frame">
+              <div
+                class="hero-carousel__marquee"
+                id="hero-carousel-marquee"
+                role="region"
+                aria-labelledby="carousel-title"
               >
-                <div class="hero-carousel__card-shot">
-                  <div class="hero-carousel__card-chrome">
-                    <span class="hero-carousel__chrome-dots" aria-hidden="true"></span>
-                    <span class="hero-carousel__tag">讨论区</span>
-                  </div>
-                  <div class="hero-carousel__card-visual" aria-hidden="true"></div>
+                <div class="hero-carousel__track" id="hero-carousel-track">
+                  <article
+                    class="hero-carousel__card hero-carousel__card--a"
+                    aria-label="讨论区：主题清晰，长文友好"
+                    data-carousel-slide
+                  >
+                    <div class="hero-carousel__card-shot">
+                      <div class="hero-carousel__card-chrome">
+                        <span class="hero-carousel__chrome-dots" aria-hidden="true"></span>
+                        <span class="hero-carousel__tag">讨论区</span>
+                      </div>
+                      <div class="hero-carousel__card-visual" aria-hidden="true"></div>
+                    </div>
+                    <div class="hero-carousel__card-body">
+                      <h3 class="hero-carousel__card-title">主题清晰，长文友好</h3>
+                      <p class="hero-carousel__card-desc">
+                        按「模型 / 数据 / 工程 / 产品 / 职业」分区沉淀，优质回答可收录进知识库。
+                      </p>
+                    </div>
+                  </article>
+                  <article
+                    class="hero-carousel__card hero-carousel__card--b"
+                    aria-label="活动：Meetup · 黑客松 · 共读"
+                    data-carousel-slide
+                  >
+                    <div class="hero-carousel__card-shot">
+                      <div class="hero-carousel__card-chrome">
+                        <span class="hero-carousel__chrome-dots" aria-hidden="true"></span>
+                        <span class="hero-carousel__tag">活动</span>
+                      </div>
+                      <div class="hero-carousel__card-visual" aria-hidden="true"></div>
+                    </div>
+                    <div class="hero-carousel__card-body">
+                      <h3 class="hero-carousel__card-title">Meetup · 黑客松 · 共读</h3>
+                      <p class="hero-carousel__card-desc">
+                        线上直播与线下城市局同一日历，报名、签到与资料回放集中管理。
+                      </p>
+                    </div>
+                  </article>
+                  <article
+                    class="hero-carousel__card hero-carousel__card--c"
+                    aria-label="资源库：模型卡片与工具榜单"
+                    data-carousel-slide
+                  >
+                    <div class="hero-carousel__card-shot">
+                      <div class="hero-carousel__card-chrome">
+                        <span class="hero-carousel__chrome-dots" aria-hidden="true"></span>
+                        <span class="hero-carousel__tag">资源库</span>
+                      </div>
+                      <div class="hero-carousel__card-visual" aria-hidden="true"></div>
+                    </div>
+                    <div class="hero-carousel__card-body">
+                      <h3 class="hero-carousel__card-title">模型卡片与工具榜单</h3>
+                      <p class="hero-carousel__card-desc">
+                        社区共建的模型说明、评测维度与教程索引，工具与工作流由使用者投票与维护。
+                      </p>
+                    </div>
+                  </article>
+                  <article
+                    class="hero-carousel__card hero-carousel__card--d"
+                    aria-label="精选：周报与深度稿"
+                    data-carousel-slide
+                  >
+                    <div class="hero-carousel__card-shot">
+                      <div class="hero-carousel__card-chrome">
+                        <span class="hero-carousel__chrome-dots" aria-hidden="true"></span>
+                        <span class="hero-carousel__tag">精选</span>
+                      </div>
+                      <div class="hero-carousel__card-visual" aria-hidden="true"></div>
+                    </div>
+                    <div class="hero-carousel__card-body">
+                      <h3 class="hero-carousel__card-title">周报与深度稿</h3>
+                      <p class="hero-carousel__card-desc">
+                        编辑与志愿者整理本周论文、版本更新与监管动态；长文支持目录锚点引用。
+                      </p>
+                    </div>
+                  </article>
+                  <article
+                    class="hero-carousel__card hero-carousel__card--e"
+                    aria-label="共建：开源与招募板"
+                    data-carousel-slide
+                  >
+                    <div class="hero-carousel__card-shot">
+                      <div class="hero-carousel__card-chrome">
+                        <span class="hero-carousel__chrome-dots" aria-hidden="true"></span>
+                        <span class="hero-carousel__tag">共建</span>
+                      </div>
+                      <div class="hero-carousel__card-visual" aria-hidden="true"></div>
+                    </div>
+                    <div class="hero-carousel__card-body">
+                      <h3 class="hero-carousel__card-title">开源与招募板</h3>
+                      <p class="hero-carousel__card-desc">
+                        仓库与贡献指南一键挂上，招募协作者时带上项目背景与技术栈。
+                      </p>
+                    </div>
+                  </article>
                 </div>
-                <div class="hero-carousel__card-body">
-                  <h3 class="hero-carousel__card-title">主题清晰，长文友好</h3>
-                  <p class="hero-carousel__card-desc">
-                    按「模型 / 数据 / 工程 / 产品 / 职业」分区沉淀，优质回答可收录进知识库。
-                  </p>
-                </div>
-              </article>
-              <article
-                class="hero-carousel__card hero-carousel__card--b"
-                aria-label="活动：Meetup · 黑客松 · 共读"
-                data-carousel-slide
-              >
-                <div class="hero-carousel__card-shot">
-                  <div class="hero-carousel__card-chrome">
-                    <span class="hero-carousel__chrome-dots" aria-hidden="true"></span>
-                    <span class="hero-carousel__tag">活动</span>
-                  </div>
-                  <div class="hero-carousel__card-visual" aria-hidden="true"></div>
-                </div>
-                <div class="hero-carousel__card-body">
-                  <h3 class="hero-carousel__card-title">Meetup · 黑客松 · 共读</h3>
-                  <p class="hero-carousel__card-desc">
-                    线上直播与线下城市局同一日历，报名、签到与资料回放集中管理。
-                  </p>
-                </div>
-              </article>
-              <article
-                class="hero-carousel__card hero-carousel__card--c"
-                aria-label="资源库：模型卡片与工具榜单"
-                data-carousel-slide
-              >
-                <div class="hero-carousel__card-shot">
-                  <div class="hero-carousel__card-chrome">
-                    <span class="hero-carousel__chrome-dots" aria-hidden="true"></span>
-                    <span class="hero-carousel__tag">资源库</span>
-                  </div>
-                  <div class="hero-carousel__card-visual" aria-hidden="true"></div>
-                </div>
-                <div class="hero-carousel__card-body">
-                  <h3 class="hero-carousel__card-title">模型卡片与工具榜单</h3>
-                  <p class="hero-carousel__card-desc">
-                    社区共建的模型说明、评测维度与教程索引，工具与工作流由使用者投票与维护。
-                  </p>
-                </div>
-              </article>
-              <article
-                class="hero-carousel__card hero-carousel__card--d"
-                aria-label="精选：周报与深度稿"
-                data-carousel-slide
-              >
-                <div class="hero-carousel__card-shot">
-                  <div class="hero-carousel__card-chrome">
-                    <span class="hero-carousel__chrome-dots" aria-hidden="true"></span>
-                    <span class="hero-carousel__tag">精选</span>
-                  </div>
-                  <div class="hero-carousel__card-visual" aria-hidden="true"></div>
-                </div>
-                <div class="hero-carousel__card-body">
-                  <h3 class="hero-carousel__card-title">周报与深度稿</h3>
-                  <p class="hero-carousel__card-desc">
-                    编辑与志愿者整理本周论文、版本更新与监管动态；长文支持目录锚点引用。
-                  </p>
-                </div>
-              </article>
-              <article
-                class="hero-carousel__card hero-carousel__card--e"
-                aria-label="共建：开源与招募板"
-                data-carousel-slide
-              >
-                <div class="hero-carousel__card-shot">
-                  <div class="hero-carousel__card-chrome">
-                    <span class="hero-carousel__chrome-dots" aria-hidden="true"></span>
-                    <span class="hero-carousel__tag">共建</span>
-                  </div>
-                  <div class="hero-carousel__card-visual" aria-hidden="true"></div>
-                </div>
-                <div class="hero-carousel__card-body">
-                  <h3 class="hero-carousel__card-title">开源与招募板</h3>
-                  <p class="hero-carousel__card-desc">
-                    仓库与贡献指南一键挂上，招募协作者时带上项目背景与技术栈。
-                  </p>
-                </div>
-              </article>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          id="showcase-panel-rankings"
+          class="showcase__panel showcase__panel--rankings"
+          role="tabpanel"
+          aria-labelledby="showcase-tab-rankings"
+          hidden
+        >
+          <div class="showcase-rankings">
+            <div class="showcase-rankings__column">
+              <h3 class="showcase-rankings__title">案例排行榜</h3>
+              <p class="showcase-rankings__desc">
+                按浏览、收藏与讨论热度综合排序（演示占位，非实时数据）。
+              </p>
+              <ol class="showcase-rankings__list">
+                <li>
+                  <span class="showcase-rankings__name">多模态 RAG 流水线踩坑实录</span>
+                  <span class="showcase-rankings__meta">工程 · 3.4k 互动</span>
+                </li>
+                <li>
+                  <span class="showcase-rankings__name">小团队如何把评测跑成周报</span>
+                  <span class="showcase-rankings__meta">产品 · 2.1k</span>
+                </li>
+                <li>
+                  <span class="showcase-rankings__name">开源数据集清洗清单 v2</span>
+                  <span class="showcase-rankings__meta">数据 · 1.8k</span>
+                </li>
+                <li>
+                  <span class="showcase-rankings__name">Meetup 纪要：端侧推理与成本</span>
+                  <span class="showcase-rankings__meta">活动 · 1.5k</span>
+                </li>
+                <li>
+                  <span class="showcase-rankings__name">模型卡片模板与引用规范</span>
+                  <span class="showcase-rankings__meta">资源库 · 1.2k</span>
+                </li>
+              </ol>
+            </div>
+            <div class="showcase-rankings__column">
+              <h3 class="showcase-rankings__title">作者排行榜</h3>
+              <p class="showcase-rankings__desc">
+                按案例收录、精选与获赞累计（演示占位）。
+              </p>
+              <ol class="showcase-rankings__list">
+                <li>
+                  <span class="showcase-rankings__name">林溪</span>
+                  <span class="showcase-rankings__meta">12 篇精选 · 案例 28</span>
+                </li>
+                <li>
+                  <span class="showcase-rankings__name">方舟</span>
+                  <span class="showcase-rankings__meta">9 篇精选 · 案例 21</span>
+                </li>
+                <li>
+                  <span class="showcase-rankings__name">陈默</span>
+                  <span class="showcase-rankings__meta">8 篇 · 活动主持 6 场</span>
+                </li>
+                <li>
+                  <span class="showcase-rankings__name">周可</span>
+                  <span class="showcase-rankings__meta">工具榜单维护 · 案例 15</span>
+                </li>
+                <li>
+                  <span class="showcase-rankings__name">苏禾</span>
+                  <span class="showcase-rankings__meta">周报编辑 · 深度稿 7</span>
+                </li>
+              </ol>
             </div>
           </div>
         </div>
