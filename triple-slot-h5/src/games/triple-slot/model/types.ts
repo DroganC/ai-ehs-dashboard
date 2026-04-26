@@ -28,3 +28,15 @@ export type Pick = {
   col: number;
 };
 
+/**
+ * 全屏 `fixed` 飞入层中的一项。与 `TripleSlotFlyLayer` 一致，由 `TripleSlotStore` 在 `rAF` 中写入坐标。
+ */
+export type FlyLayerItem = {
+  id: string;
+  icon: string;
+  x: number;
+  y: number;
+  scale: number;
+  opacity: number;
+};
+

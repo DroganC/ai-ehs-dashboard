@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
-import type { EpFly } from "../store/emergencyProcedureStore";
+import type { EpFly } from "../model/types";
 
 type EpFlyLayerProps = {
   items: readonly EpFly[];
 };
 
 /**
- * 全屏 `fixed` 飞入层，仅展示坐标与文案，与 `emergencyProcedureStore.animateFly` 配合。
+ * 全屏 `fixed` 飞入层：只渲染 `store.flys` 中的文案与坐标，不访问 MobX。
  */
 export function EpFlyLayer({ items }: EpFlyLayerProps): ReactNode {
   return items.map((f) => (

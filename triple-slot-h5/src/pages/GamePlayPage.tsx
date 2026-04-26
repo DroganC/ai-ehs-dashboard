@@ -19,5 +19,9 @@ export function GamePlayPage() {
   }
 
   const { Component } = entry;
-  return <Component />;
+  return (
+    <div className="h5-app__play">
+      <Component />
+    </div>
+  );
 }

@@ -1,29 +1,102 @@
 /**
  * 应急流程卡片根视图：头栏 / 中部卡区 / 底槽、飞入层、规则与通关层；逻辑在 `emergencyProcedureStore`（MobX）。
+ *
+ * 子组件职责：
+ * - `EpSequencePool` / `EpSupplyGrid`：第 1 / 2 关中部棋盘，仅受控与转发点击
+ * - `EpFlyLayer`：飞入字牌的绝对定位层
+ * - `EpRulesOverlay`：首屏规则
+ * 底栏槽位为内联列表（与 store 的 `returnFromSlotIndex` 强相关，避免过度拆分）。
+ * 音轨见 `public/games/emergency-procedure/assets/`，`useGameSfxController` 绑定。
  */
 import { observer } from "mobx-react-lite";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useGameSfxController } from "../hooks/useGameSfxController";
+import { EMERGENCY_SFX } from "./audio/paths";
+import { EMERGENCY_TOAST_FAIL_ORDER } from "./config";
 import { emergencyProcedureStore } from "./store/emergencyProcedureStore";
-import { EpCardFace } from "./ui/EpCardFace";
 import { EpFlyLayer } from "./ui/EpFlyLayer";
 import { EpRulesOverlay } from "./ui/EpRulesOverlay";
+import { EpSequencePool } from "./ui/EpSequencePool";
+import { EpSupplyGrid } from "./ui/EpSupplyGrid";
+import { queryEpSlotByIndex } from "./utils/epSlotDom";
 import "./emergency-procedure-view.less";
-
-function querySlotElement(index: number): HTMLElement | null {
-  return document.querySelector<HTMLElement>(`[data-ep-slot-idx="${String(index)}"]`);
-}
 
 export default observer(function EmergencyProcedureView() {
   const store = emergencyProcedureStore;
   const [showRules, setShowRules] = useState(true);
+  const level = store.level;
+  const phase = store.phase;
+
+  const { setBgmRunning, playClick, playWin, playLose } = useGameSfxController(
+    EMERGENCY_SFX,
+  );
+  const prevPhase = useRef(phase);
+  const prevFailToast = useRef<string | null>(null);
+  /** 卡槽退牌过渡：先播 CSS 再调 `returnFromSlotIndex` */
+  const [returningSlotIndex, setReturningSlotIndex] = useState<number | null>(
+    null,
+  );
+  const slotReturnTimerRef = useRef<number | null>(null);
+  const slotReturnDurationsMs = useRef(280);
+
+  const clearSlotReturnTimer = useCallback(() => {
+    if (slotReturnTimerRef.current !== null) {
+      window.clearTimeout(slotReturnTimerRef.current);
+      slotReturnTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      slotReturnDurationsMs.current = 60;
+    }
+  }, []);
 
   useEffect(() => {
     void store.startSession();
-  }, [store]);
+    return () => {
+      clearSlotReturnTimer();
+      store.dispose();
+    };
+  }, [store, clearSlotReturnTimer]);
 
-  const level = store.level;
-  const phase = store.phase;
+  useEffect(() => {
+    setBgmRunning(phase === "playing" && !showRules);
+  }, [setBgmRunning, phase, showRules]);
+
+  useEffect(() => {
+    if (
+      prevPhase.current === "playing" &&
+      (phase === "levelCleared" || phase === "allCleared")
+    ) {
+      playWin();
+    }
+    prevPhase.current = phase;
+  }, [phase, playWin]);
+
+  useEffect(() => {
+    const t = store.toastText;
+    if (t === EMERGENCY_TOAST_FAIL_ORDER && prevFailToast.current !== t) {
+      playLose();
+    }
+    prevFailToast.current = t;
+  }, [store.toastText, playLose]);
+
   const canInteract = phase === "playing" && !showRules;
+  const slotInteractionLocked = returningSlotIndex !== null;
+
+  function handleSlotReturnClick(slotIndex: number): void {
+    if (!canInteract || slotInteractionLocked) return;
+    playClick();
+    setReturningSlotIndex(slotIndex);
+    clearSlotReturnTimer();
+    const ms = slotReturnDurationsMs.current;
+    slotReturnTimerRef.current = window.setTimeout(() => {
+      slotReturnTimerRef.current = null;
+      store.returnFromSlotIndex(slotIndex);
+      setReturningSlotIndex(null);
+    }, ms);
+  }
 
   if (phase === "loading") {
     if (store.loadError) {
@@ -71,78 +144,44 @@ export default observer(function EmergencyProcedureView() {
 
       <main className="ep__main" aria-label="操作区">
         {levelMode === "sequence" ? (
-          <section className="ep__panel ep__board ep__board--seq" aria-label="流程卡片">
-            <h2 className="ep__board-title">按正确顺序点击，飞入下方卡槽</h2>
-            <div className="ep__pool--seq">
-              {store.pool.map((id) => {
-                const card = store.cardMap.get(id);
-                if (!card) return null;
-                return (
-                  <div key={id} className="ep__pool-item" data-ep-pool-id={id}>
-                    <EpCardFace
-                      card={card}
-                      styleVariant="poker"
-                      selected={false}
-                      interactionDisabled={!canInteract || store.flightCount > 0}
-                      onSelect={() => {
-                        const el = document.querySelector<HTMLElement>(`[data-ep-pool-id="${id}"]`);
-                        if (!el) return;
-                        void store.clickFromPool(id, el.getBoundingClientRect(), (i) => querySlotElement(i));
-                      }}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+          <EpSequencePool
+            boardTitle="按正确顺序点击，飞入下方卡槽"
+            cardIds={store.pool}
+            getCard={(id) => store.cardMap.get(id)}
+            canInteract={canInteract}
+            onPickFromPool={(id) => {
+              playClick();
+              const el = document.querySelector<HTMLElement>(`[data-ep-pool-id="${id}"]`);
+              if (!el) return;
+              void store.clickFromPool(
+                id,
+                el.getBoundingClientRect(),
+                (i) => queryEpSlotByIndex(i),
+              );
+            }}
+          />
         ) : (
-          <section className="ep__panel ep__board ep__board--grid" aria-label="消防物资格">
-            <h2 className="ep__board-title">3×3 选择物资，与第一关步骤顺序一一对应</h2>
-            <div
-              className="ep__grid-9"
-              style={{
-                gridTemplateColumns: `repeat(${String(gridW)}, minmax(0, 1fr))`,
-                gridTemplateRows: `repeat(${String(gridH)}, minmax(0, 1fr))`,
-              }}
-            >
-              {Array.from({ length: gridLen }).map((_, cellIndex) => {
-                const id = store.gridCells[cellIndex];
-                const card = id ? store.cardMap.get(id) : undefined;
-                if (!id || !card) {
-                  return (
-                    <div
-                      key={`c-${String(cellIndex)}`}
-                      className="ep__grid-cell ep__grid-cell--empty"
-                      aria-label={`空位 ${String(cellIndex + 1)}`}
-                    />
-                  );
-                }
-                return (
-                  <div key={id} className="ep__grid-cell" data-ep-cell={String(cellIndex)}>
-                    <div className="ep__grid-cell-inner" data-ep-pool-id={id}>
-                      <EpCardFace
-                        card={card}
-                        styleVariant="supply"
-                        showImagePlaceholder
-                        interactionDisabled={!canInteract || store.flightCount > 0}
-                        onSelect={() => {
-                          const el = document.querySelector<HTMLElement>(
-                            `[data-ep-cell="${String(cellIndex)}"]`,
-                          );
-                          if (!el) return;
-                          void store.clickFromGrid(
-                            cellIndex,
-                            el.getBoundingClientRect(),
-                            (i) => querySlotElement(i),
-                          );
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+          <EpSupplyGrid
+            boardTitle="3×3 选择物资，与第一关步骤顺序一一对应"
+            gridW={gridW}
+            gridH={gridH}
+            gridCellCount={gridLen}
+            gridCells={store.gridCells}
+            getCard={(id) => store.cardMap.get(id)}
+            canInteract={canInteract}
+            onPickFromCell={(cellIndex) => {
+              playClick();
+              const el = document.querySelector<HTMLElement>(
+                `[data-ep-cell="${String(cellIndex)}"]`,
+              );
+              if (!el) return;
+              void store.clickFromGrid(
+                cellIndex,
+                el.getBoundingClientRect(),
+                (i) => queryEpSlotByIndex(i),
+              );
+            }}
+          />
         )}
       </main>
 
@@ -155,28 +194,24 @@ export default observer(function EmergencyProcedureView() {
           {Array.from({ length: store.slotCount }).map((_, i) => {
             const placed = store.slotPlacements[i];
             const card = placed ? store.cardMap.get(placed) : undefined;
-            const isHint =
-              (level.hintEnabled !== false) &&
-              placed === null &&
-              store.hintSlotIndex === i;
             const isFilled = placed !== null;
 
             return (
               <div
                 key={`slot-${String(i)}`}
-                className={`ep-slot${isHint ? " ep-slot--hint" : ""} ep__slot`}
+                className="ep-slot ep__slot"
                 role="listitem"
               >
                 <button
                   type="button"
                   className={`ep-slot__inner${
                     isFilled ? " ep-slot__inner--filled" : " ep-slot__inner--empty"
-                  }`}
+                  }${returningSlotIndex === i ? " ep-slot__inner--returning" : ""}`}
                   data-ep-slot-idx={String(i)}
-                  disabled={!isFilled}
+                  disabled={!isFilled || !canInteract || slotInteractionLocked}
                   onClick={() => {
-                    if (!canInteract) return;
-                    if (isFilled) store.returnFromSlotIndex(i);
+                    if (!isFilled) return;
+                    handleSlotReturnClick(i);
                   }}
                 >
                   <span className="ep-slot__num">{i + 1}</span>

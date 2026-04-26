@@ -11,17 +11,7 @@ import {
 } from "../model/animation";
 import { FAIL_LIMIT, SLOT_CAPACITY, TOTAL_TILES } from "../model/constants";
 import { easeInOutCubic } from "../model/easing";
-import type { Pick, Tile } from "../model/types";
-
-/** 飞入动画层单条项（与 `TripleSlotFlyLayer` / `TripleSlotFly` 字段一致） */
-type Fly = {
-  id: string;
-  icon: string;
-  x: number;
-  y: number;
-  scale: number;
-  opacity: number;
-};
+import type { FlyLayerItem, Pick, Tile } from "../model/types";
 
 type SlotAnim = "none" | "success" | "fail";
 type SlotHint = "none" | "almostFull";
@@ -40,6 +30,7 @@ export type ResolveSlotResult =
 
 /**
  * 三消槽位局内状态与动画调度（MobX）。棋盘 + 下槽 + 飞层坐标均在 store 内维护，视图只负责取 DOM 与展示。
+ * 不 import 任何 React 组件；`performPick` 通过回调向视图要槽位 `HTMLElement` 以测量落点。
  */
 export class TripleSlotStore {
   level: LevelConfig | null = null;
@@ -54,11 +45,16 @@ export class TripleSlotStore {
   slotAnim: SlotAnim = "none";
   slotHint: SlotHint = "none";
   toast: { kind: ToastKind; text: string } = { kind: "none", text: "" };
-  flys: Fly[] = [];
+  flys: FlyLayerItem[] = [];
   private flyId = 0;
   private slotAnimTimer: number | null = null;
   private hintTimer: number | null = null;
   private toastTimer: number | null = null;
+  /**
+   * 自增「动画世代」：在 `reset` / `dispose` 时递增，使进行中的 `requestAnimationFrame` 飞入在下一帧前退出，
+   * 避免路由卸载后仍向 MobX 写坐标。
+   */
+  private animEpoch = 0;
   /** 为每次新选牌发单调序号，与入槽提交顺序一致（先点先进槽，动画先后无关）。 */
   private nextPickSeq = 0;
   /** 下一个必须提交的 seq；小于它的已在 buf 中等待。 */
@@ -67,6 +63,10 @@ export class TripleSlotStore {
 
   constructor() {
     makeAutoObservable(this, {}, { autoBind: true });
+  }
+
+  private bumpAnimEpoch(): void {
+    this.animEpoch += 1;
   }
 
   get levelName(): string {
@@ -100,10 +100,34 @@ export class TripleSlotStore {
   }
 
   /**
+   * 游戏页卸载或切换路由时调用：注销槽位动效定时器、废掉未结束的飞入 `rAF`，避免卸载后改写字段。
+   * 不重置整局；再次进入时由视图 `loadLevel` 拉关。
+   */
+  dispose(): void {
+    this.bumpAnimEpoch();
+    if (this.slotAnimTimer !== null) {
+      window.clearTimeout(this.slotAnimTimer);
+      this.slotAnimTimer = null;
+    }
+    if (this.hintTimer !== null) {
+      window.clearTimeout(this.hintTimer);
+      this.hintTimer = null;
+    }
+    if (this.toastTimer !== null) {
+      window.clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
+    runInAction(() => {
+      this.flys = [];
+    });
+  }
+
+  /**
    * 开局或重开。传入新 `level` 时替换 `this.level` 并重新铺砖。
    * @param level 新关卡；不传时沿用当前关（须已加载过）
    */
   reset(level?: LevelConfig): void {
+    this.bumpAnimEpoch();
     if (level) this.level = level;
     if (!this.level) throw new Error("Level not loaded");
     this.tiles = buildTilesFromLevel(this.level);
@@ -274,7 +298,12 @@ export class TripleSlotStore {
     }
   }
 
-  private animateFly(icon: string, from: DOMRect, to: DOMRect): Promise<void> {
+  private animateFly(
+    icon: string,
+    from: DOMRect,
+    to: DOMRect,
+    animEpoch: number,
+  ): Promise<void> {
     const id = String(++this.flyId);
     const startX = from.left + from.width / 2;
     const startY = from.top + from.height / 2;
@@ -285,6 +314,13 @@ export class TripleSlotStore {
 
     return new Promise<void>((resolve) => {
       const step = (now: number) => {
+        if (this.animEpoch !== animEpoch) {
+          runInAction(() => {
+            this.flys = this.flys.filter((f) => f.id !== id);
+          });
+          resolve();
+          return;
+        }
         const t = Math.min(1, (now - start) / duration);
         const k = easeInOutCubic(t);
         const x = startX + (endX - startX) * k;
@@ -305,6 +341,13 @@ export class TripleSlotStore {
         });
         if (t < 1) requestAnimationFrame(step);
         else {
+          if (this.animEpoch !== animEpoch) {
+            runInAction(() => {
+              this.flys = this.flys.filter((f) => f.id !== id);
+            });
+            resolve();
+            return;
+          }
           runInAction(() => {
             this.flys = this.flys.filter((f) => f.id !== id);
           });
@@ -333,6 +376,7 @@ export class TripleSlotStore {
     const el = getSlotCell(targetIdx);
     if (!el) return;
 
+    const pickEpoch = this.animEpoch;
     const seq = this.nextPickSeq;
     this.nextPickSeq += 1;
     this.pendingFlights += 1;
@@ -342,7 +386,16 @@ export class TripleSlotStore {
     });
 
     const to = el.getBoundingClientRect();
-    await this.animateFly(pickRes.tile.icon, from, to);
+    await this.animateFly(pickRes.tile.icon, from, to, pickEpoch);
+
+    if (this.animEpoch !== pickEpoch) {
+      runInAction(() => {
+        if (pickRes.tile.state === "picking") pickRes.tile.state = "onBoard";
+        this.pendingFlights -= 1;
+        this.nextPickSeq -= 1;
+      });
+      return;
+    }
 
     runInAction(() => {
       this.commitBuffer.set(seq, pickRes.tile);

@@ -1,8 +1,14 @@
 // 三消槽位（TRIPLE_SLOT）整页：BEM 块 `.triple-slot`，含棋盘/槽位/飞层/规则与结算层。
 
+// 与应急流程 `ep` 一致：全高 flex 列，主区 `__main` 吃满头尾之间剩余空间（`.h5-app__play` 在 `index.less`）
 .triple-slot {
+  width: 100%;
   height: 100%;
-  padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 12px;
+  min-height: 0;
+  max-height: 100dvh;
+  box-sizing: border-box;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 12px
+    calc(12px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -13,6 +19,12 @@
   &__panel {
     position: relative;
     overflow: hidden;
+  }
+
+  /* 头栏：不收缩 */
+  &__header {
+    flex: 0 0 auto;
+    min-width: 0;
   }
 
   &__header-row {
@@ -56,18 +68,24 @@
     }
   }
 
+  /* 主区：撑满中间，内棋盘在矮屏可滚动 */
   &__main {
-    flex: 1;
-    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 
   &__board {
-    flex: 1;
+    flex: 1 1 0;
     position: relative;
     z-index: 1;
-    overflow: hidden;
+    min-width: 0;
     min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   &__grid {
@@ -151,9 +169,13 @@
     transform: translateY(-1px);
   }
 
+  /* 底栏：三槽，不随主区挤压 */
   &__footer {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     padding: 10px 12px;
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
     background: rgba(255, 255, 255, 0.5);
     display: flex;
     align-items: center;
@@ -162,7 +184,8 @@
   }
 
   &__slot-cell {
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 0;
     height: 44px;
     border-radius: var(--g-radiusSm);
     background: rgba(255, 255, 255, 0.55);

@@ -1,24 +1,14 @@
 import type { ReactNode } from "react";
+import type { FlyLayerItem } from "../model/types";
 
-/**
- * 单条飞入动画的视图像素状态（`fixed` 定位的临时层）。
- * 与 `TripleSlotStore` 内 `flys` 项形状一致，便于对拍。
- */
-export type TripleSlotFly = {
-  id: string;
-  icon: string;
-  x: number;
-  y: number;
-  scale: number;
-  opacity: number;
-};
+export type { FlyLayerItem as TripleSlotFly } from "../model/types";
 
 type TripleSlotFlyLayerProps = {
-  items: readonly TripleSlotFly[];
+  items: readonly FlyLayerItem[];
 };
 
 /**
- * 飞行动画层：只负责根据坐标渲染，不参与游戏逻辑。
+ * 全屏 `fixed` 飞入层：根据 `TripleSlotStore.flys` 像素坐标叠在棋盘上，不含业务判断。
  */
 export function TripleSlotFlyLayer({ items }: TripleSlotFlyLayerProps): ReactNode {
   return items.map((f) => (

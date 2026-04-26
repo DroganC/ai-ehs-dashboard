@@ -1,14 +1,25 @@
 /**
- * 三消槽位：棋盘点选飞入、槽内三消、胜负结算与规则首屏。状态在 `tripleSlotStore`（MobX），本文件只做编排与事件绑定。
+ * 三消槽位根视图：编排子组件、绑定 MobX 与交互；**不**含游戏规则判断（在 `tripleSlotStore`）。
+ *
+ * 子组件职责简述：
+ * - `TripleSlotHeader`：关名 / 清牌进度 / 剩余步数
+ * - `TripleSlotBoardGrid`：3×7 可点格，仅通过 `tileAt` 读数
+ * - `TripleSlotSlotStrip`：底部 3 槽用于展示与飞入落点 `data-slot-idx`
+ * - `TripleSlotToastGroup`：槽将满、失败回滚等旁白
+ * - `TripleSlotFlyLayer`：飞入 sprite 的绝对定位层
+ * - `TripleSlotRulesOverlay` / `TripleSlotResultOverlay`：首屏与结算
+ * - 背景乐与短音见 `public/games/triple-slot/assets/`，`useGameSfxController` 绑定
  */
 import { observer } from "mobx-react-lite";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useGameSfxController } from "../hooks/useGameSfxController";
 import {
   BOARD_COLS,
   BOARD_ROWS,
   SLOT_CAPACITY,
   TOTAL_TILES,
 } from "./model/constants";
+import { TRIPLE_SLOT_SFX } from "./audio/paths";
 import { TRIPLE_SLOT_DEFAULT_LEVEL } from "./config";
 import type { Tile } from "./model/types";
 import { tripleSlotStore } from "./store/tripleSlotStore";
@@ -19,16 +30,25 @@ import { TripleSlotSlotStrip } from "./ui/TripleSlotSlotStrip";
 import { TripleSlotResultOverlay } from "./ui/TripleSlotResultOverlay";
 import { TripleSlotRulesOverlay } from "./ui/TripleSlotRulesOverlay";
 import { TripleSlotToastGroup } from "./ui/TripleSlotToastGroup";
+import { queryTripleSlotCellByIndex } from "./utils/slotDom";
 import "./triple-slot-view.less";
 
 export default observer(function TripleSlotView() {
   const [showRules, setShowRules] = useState(true);
 
+  const { setBgmRunning, playClick, playWin, playLose } = useGameSfxController(
+    TRIPLE_SLOT_SFX,
+  );
+
   useEffect(() => {
     void tripleSlotStore.loadLevel(TRIPLE_SLOT_DEFAULT_LEVEL);
+    return () => {
+      tripleSlotStore.dispose();
+    };
   }, []);
 
   const phase = tripleSlotStore.phase;
+  const prevPhase = useRef(phase);
 
   const slotIcons = tripleSlotStore.slotIcons;
   const livesLeft = Math.max(
@@ -38,14 +58,23 @@ export default observer(function TripleSlotView() {
   const isPlaying = phase === "playing" && !showRules;
   const progressText = `${tripleSlotStore.clearedCount}/${TOTAL_TILES}`;
 
+  useEffect(() => {
+    setBgmRunning(isPlaying);
+  }, [isPlaying, setBgmRunning]);
+
+  useEffect(() => {
+    if (prevPhase.current === "playing" && phase === "win") playWin();
+    if (prevPhase.current === "playing" && phase === "lose") playLose();
+    prevPhase.current = phase;
+  }, [phase, playWin, playLose]);
+
   async function handlePick(tileId: string, btn: HTMLButtonElement): Promise<void> {
     const tile = tripleSlotStore.tiles.find((t) => t.id === tileId);
     if (!btn || !tile) return;
+    playClick();
     const from = btn.getBoundingClientRect();
     await tripleSlotStore.performPick(tileId, from, (idx) =>
-      document.querySelector<HTMLElement>(
-        `.triple-slot__slot-cell[data-slot-idx="${idx}"]`,
-      ),
+      queryTripleSlotCellByIndex(idx),
     );
   }
 

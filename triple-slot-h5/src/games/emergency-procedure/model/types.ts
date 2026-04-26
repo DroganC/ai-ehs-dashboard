@@ -44,3 +44,15 @@ export type EmergencyLevelConfig = {
   /** 仅 `grid` 模式，默认 3×3。 */
   grid?: { rows: number; cols: number };
 };
+
+/**
+ * 全屏 `fixed` 飞入层中的一项。由 `EmergencyProcedureStore` 的 `animateFly` 与 `ui/EpFlyLayer` 共用，避免 Store 与 UI 循环依赖。
+ */
+export type EpFly = {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  scale: number;
+  opacity: number;
+};

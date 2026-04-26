@@ -1,5 +1,9 @@
 import { makeAutoObservable, runInAction } from "mobx";
-import { EMERGENCY_LEVEL_COUNT, EMERGENCY_LEVEL_PATHS } from "../config";
+import {
+  EMERGENCY_LEVEL_COUNT,
+  EMERGENCY_LEVEL_PATHS,
+  EMERGENCY_TOAST_FAIL_ORDER,
+} from "../config";
 import {
   EP_FLY_ARC_PX,
   EP_FLY_DURATION_MS,
@@ -7,7 +11,12 @@ import {
   EP_FLY_HALF_W,
 } from "../model/animation";
 import { epEaseInOutCubic } from "../model/easing";
-import type { CardDef, EmergencyLevelConfig, EmergencyLevelMode } from "../model/types";
+import type {
+  CardDef,
+  EmergencyLevelConfig,
+  EmergencyLevelMode,
+  EpFly,
+} from "../model/types";
 
 function shuffleArray<T>(items: T[]): T[] {
   const a = [...items];
@@ -51,16 +60,10 @@ function validateConfig(raw: unknown): raw is EmergencyLevelConfig {
 
 export type EpPhase = "loading" | "playing" | "levelCleared" | "allCleared";
 
-/** 与 `ui/EpFlyLayer` 单条项一致。 */
-export type EpFly = {
-  id: string;
-  text: string;
-  x: number;
-  y: number;
-  scale: number;
-  opacity: number;
-};
-
+/**
+ * 应急流程两关（顺序池 + 3×3 物资格）的局内状态。飞入、Toast、关末阶段均在 store；视图仅绑定数据与发起点选。
+ * 不 import React；槽位/池子 DOM 由视图在回调中 query。
+ */
 export class EmergencyProcedureStore {
   phase: EpPhase = "loading";
   loadError: string | null = null;
@@ -70,10 +73,7 @@ export class EmergencyProcedureStore {
 
   /** 第一关：待选区牌 id（打乱的 `correctOrder` 全集）。 */
   pool: string[] = [];
-  /**
-   * 第二关：3×3 行优先，与 `gridOrder` 一一对应；`null` 表示该格已取走至槽内过程或仍为空位。
-   */
-  /** 第二关 3×3；已取入槽的格为 `null`。 */
+  /** 第二关 3×3 行优先，与 `gridOrder` 一一对应；`null` 表示已取入槽。 */
   gridCells: Array<string | null> = [];
   /** 第二关首局面快照，用于「失败重排」时洗乱 9 格。 */
   private initialGridOrder: string[] = [];
@@ -87,14 +87,27 @@ export class EmergencyProcedureStore {
 
   flys: EpFly[] = [];
   private flyId = 0;
-  /** 飞入中禁止连点。 */
-  flightCount = 0;
+  /** 同 `TripleSlotStore.animEpoch`：在换关/卸载时递增以终止未完成的飞入 rAF。 */
+  private animEpoch = 0;
+  /**
+   * 已点选、尚未入槽的飞入笔数（与 `TripleSlotStore.pendingFlights` 同义）。
+   * 真正落槽在 `flushSlotCommits` 中按 `nextCommitSeq` 顺序执行，与飞入动画完成顺序无关。
+   */
+  pendingFlights = 0;
+  /** 与三消一致：按点击发牌顺序入槽。 */
+  private nextPickSeq = 0;
+  private nextCommitSeq = 0;
+  private commitBuffer = new Map<number, { k: number; cardId: string }>();
 
   toastText: string | null = null;
   private toastTimer: number | null = null;
 
   constructor() {
     makeAutoObservable(this, {}, { autoBind: true });
+  }
+
+  private bumpAnimEpoch(): void {
+    this.animEpoch += 1;
   }
 
   get totalLevels(): number {
@@ -145,6 +158,21 @@ export class EmergencyProcedureStore {
     await this.loadLevelByIndex(0);
   }
 
+  /**
+   * 游戏页卸载时调用：清 Toast 与飞层，使 `rAF` 在下一拍检查 `animEpoch` 后退出；不整局重开（由再次进入时的 `startSession` 拉关）。
+   */
+  dispose(): void {
+    this.bumpAnimEpoch();
+    if (this.toastTimer !== null) {
+      window.clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
+    runInAction(() => {
+      this.toastText = null;
+      this.flys = [];
+    });
+  }
+
   clearToastSoon(ms: number = 2400): void {
     if (this.toastTimer !== null) {
       window.clearTimeout(this.toastTimer);
@@ -163,13 +191,17 @@ export class EmergencyProcedureStore {
   }
 
   private applyLevel(config: EmergencyLevelConfig): void {
+    this.bumpAnimEpoch();
     this.level = config;
     this.levelMode = config.mode;
     this.sourceCellByCardId.clear();
     const n = config.correctOrder.length;
     this.slotPlacements = Array.from({ length: n }, () => null);
     this.flys = [];
-    this.flightCount = 0;
+    this.pendingFlights = 0;
+    this.nextPickSeq = 0;
+    this.nextCommitSeq = 0;
+    this.commitBuffer.clear();
 
     if (config.mode === "sequence") {
       this.gridCells = [];
@@ -209,6 +241,7 @@ export class EmergencyProcedureStore {
         this.toastText = null;
       });
     } catch (e) {
+      this.bumpAnimEpoch();
       const msg = e instanceof Error ? e.message : "加载失败";
       runInAction(() => {
         this.loadError = msg;
@@ -219,17 +252,38 @@ export class EmergencyProcedureStore {
     }
   }
 
-  private getNextEmptySlotIndex(): number {
-    const i = this.slotPlacements.findIndex((s) => s === null);
-    return i;
+  /**
+   * 在「仅按顺序从左到右填槽」规则下，下一手应落到的空槽下标；同时考虑已发起尚未入槽的 `pendingFlights` 个占位（与三消的 `nullIdx[pending]` 一致）。
+   */
+  private getTargetSlotIndexForNewPick(): number {
+    const nullIdx: number[] = [];
+    for (let i = 0; i < this.slotPlacements.length; i += 1) {
+      if (this.slotPlacements[i] === null) nullIdx.push(i);
+    }
+    if (nullIdx.length <= this.pendingFlights) return -1;
+    return nullIdx[this.pendingFlights] ?? -1;
+  }
+
+  private flushSlotCommits(): void {
+    while (this.commitBuffer.has(this.nextCommitSeq)) {
+      const row = this.commitBuffer.get(this.nextCommitSeq)!;
+      this.commitBuffer.delete(this.nextCommitSeq);
+      this.nextCommitSeq += 1;
+      runInAction(() => {
+        this.pendingFlights -= 1;
+        this.slotPlacements[row.k] = row.cardId;
+      });
+      this.tryFinalizeOrFail();
+    }
   }
 
   private async animateFly(
     text: string,
     from: DOMRect,
     to: DOMRect,
+    animEpoch: number,
   ): Promise<void> {
-    const id = `fly-${++this.flyId}`;
+    const id = `ep-fly-${++this.flyId}`;
     const startX = from.left + from.width / 2;
     const startY = from.top + from.height / 2;
     const endX = to.left + to.width / 2;
@@ -237,21 +291,29 @@ export class EmergencyProcedureStore {
     const duration = EP_FLY_DURATION_MS;
     const start = performance.now();
 
-    await new Promise<void>((resolve) => {
+    return new Promise<void>((resolve) => {
       const step = (now: number) => {
+        if (this.animEpoch !== animEpoch) {
+          runInAction(() => {
+            this.flys = this.flys.filter((f) => f.id !== id);
+          });
+          resolve();
+          return;
+        }
         const t = Math.min(1, (now - start) / duration);
-        const k = epEaseInOutCubic(t);
-        const x = startX + (endX - startX) * k;
-        const arc = Math.sin(Math.PI * k) * EP_FLY_ARC_PX;
-        const y = startY + (endY - startY) * k - arc;
+        const e = epEaseInOutCubic(t);
+        const x = startX + (endX - startX) * e;
+        const arc = Math.sin(Math.PI * e) * EP_FLY_ARC_PX;
+        const y = startY + (endY - startY) * e - arc;
         runInAction(() => {
           this.flys = [
+            ...this.flys.filter((f) => f.id !== id),
             {
               id,
               text,
               x: x - EP_FLY_HALF_W,
               y: y - EP_FLY_HALF_H,
-              scale: 1 - 0.08 * t,
+              scale: 1 - 0.08 * e,
               opacity: 1,
             },
           ];
@@ -259,8 +321,15 @@ export class EmergencyProcedureStore {
         if (t < 1) {
           requestAnimationFrame(step);
         } else {
+          if (this.animEpoch !== animEpoch) {
+            runInAction(() => {
+              this.flys = this.flys.filter((f) => f.id !== id);
+            });
+            resolve();
+            return;
+          }
           runInAction(() => {
-            this.flys = [];
+            this.flys = this.flys.filter((f) => f.id !== id);
           });
           resolve();
         }
@@ -270,7 +339,7 @@ export class EmergencyProcedureStore {
   }
 
   /**
-   * 第一关：点击池中的一张，飞入**下一个**空槽；满 5 张时整体验证。
+   * 第一关：点池牌飞入槽位；可并发多段飞入，入槽顺序与发牌序一致（同 `TripleSlotStore.performPick`）。
    */
   async clickFromPool(
     cardId: string,
@@ -279,34 +348,43 @@ export class EmergencyProcedureStore {
   ): Promise<void> {
     if (this.phase !== "playing" || !this.level || this.levelMode !== "sequence")
       return;
-    if (this.flightCount > 0) return;
     if (!this.pool.includes(cardId)) return;
-    const k = this.getNextEmptySlotIndex();
+    const k = this.getTargetSlotIndexForNewPick();
     if (k < 0) return;
 
     const el = getTargetSlot(k);
     if (!el) return;
     const label = this.cardMap.get(cardId)?.label ?? "";
+    const toRect = el.getBoundingClientRect();
 
-    this.flightCount += 1;
+    const pickEpoch = this.animEpoch;
+    const seq = this.nextPickSeq;
+    this.nextPickSeq += 1;
+    this.pendingFlights += 1;
+
     runInAction(() => {
       this.pool = this.pool.filter((c) => c !== cardId);
     });
 
-    try {
-      await this.animateFly(label, fromRect, el.getBoundingClientRect());
-    } finally {
-      this.flightCount -= 1;
+    await this.animateFly(label, fromRect, toRect, pickEpoch);
+
+    if (this.animEpoch !== pickEpoch) {
+      runInAction(() => {
+        this.nextPickSeq -= 1;
+        this.pendingFlights -= 1;
+        if (!this.pool.includes(cardId)) this.pool.push(cardId);
+      });
+      return;
     }
 
     runInAction(() => {
-      this.slotPlacements[k] = cardId;
+      this.commitBuffer.set(seq, { k, cardId });
     });
-    this.tryFinalizeOrFail();
+    this.flushSlotCommits();
   }
 
   /**
-   * 第二关：点击 3×3 某格，飞入**下一个**空槽。
+   * 第二关：点格内物资飞入槽位；与 `clickFromPool` 相同的多段飞入、按序入槽。
    */
   async clickFromGrid(
     cellIndex: number,
@@ -314,29 +392,41 @@ export class EmergencyProcedureStore {
     getTargetSlot: (index: number) => HTMLElement | null,
   ): Promise<void> {
     if (this.phase !== "playing" || !this.level || this.levelMode !== "grid") return;
-    if (this.flightCount > 0) return;
     const cardId = this.gridCells[cellIndex];
     if (cardId == null) return;
-    const k = this.getNextEmptySlotIndex();
+    const k = this.getTargetSlotIndexForNewPick();
     if (k < 0) return;
     const el = getTargetSlot(k);
     if (!el) return;
     const label = this.cardMap.get(cardId)?.label ?? "";
+    const toRect = el.getBoundingClientRect();
 
-    this.flightCount += 1;
+    const pickEpoch = this.animEpoch;
+    const seq = this.nextPickSeq;
+    this.nextPickSeq += 1;
+    this.pendingFlights += 1;
+
     runInAction(() => {
       this.gridCells[cellIndex] = null;
       this.sourceCellByCardId.set(cardId, cellIndex);
     });
-    try {
-      await this.animateFly(label, fromRect, el.getBoundingClientRect());
-    } finally {
-      this.flightCount -= 1;
+
+    await this.animateFly(label, fromRect, toRect, pickEpoch);
+
+    if (this.animEpoch !== pickEpoch) {
+      runInAction(() => {
+        this.nextPickSeq -= 1;
+        this.pendingFlights -= 1;
+        this.gridCells[cellIndex] = cardId;
+        this.sourceCellByCardId.delete(cardId);
+      });
+      return;
     }
+
     runInAction(() => {
-      this.slotPlacements[k] = cardId;
+      this.commitBuffer.set(seq, { k, cardId });
     });
-    this.tryFinalizeOrFail();
+    this.flushSlotCommits();
   }
 
   /**
@@ -345,7 +435,8 @@ export class EmergencyProcedureStore {
   returnFromSlotIndex(fromIndex: number): void {
     if (this.phase !== "playing" || !this.level) return;
     if (fromIndex < 0 || fromIndex >= this.slotPlacements.length) return;
-    if (this.flightCount > 0) return;
+    /** 有牌尚未落槽时禁止退格，与三消在飞入中避免复杂并发一致 */
+    if (this.pendingFlights > 0) return;
     if (this.slotPlacements[fromIndex] === null) return;
 
     const ids: string[] = [];
@@ -393,8 +484,14 @@ export class EmergencyProcedureStore {
 
   private resetRoundAfterWrong(): void {
     if (!this.level) return;
-    this.showToast("顺序不正确，已归位并重新打乱，请重试。");
+    this.showToast(EMERGENCY_TOAST_FAIL_ORDER);
+    this.bumpAnimEpoch();
     runInAction(() => {
+      this.flys = [];
+      this.nextPickSeq = 0;
+      this.nextCommitSeq = 0;
+      this.commitBuffer.clear();
+      this.pendingFlights = 0;
       const n = this.level!.correctOrder.length;
       for (let i = 0; i < n; i += 1) {
         this.slotPlacements[i] = null;
@@ -420,3 +517,6 @@ export class EmergencyProcedureStore {
 }
 
 export const emergencyProcedureStore: EmergencyProcedureStore = new EmergencyProcedureStore();
+
+/** 兼容旧 import：`EpFly` 现定义于 `model/types`。 */
+export type { EpFly } from "../model/types";

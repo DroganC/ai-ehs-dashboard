@@ -15,3 +15,9 @@ export const EMERGENCY_LEVEL_PATHS: readonly string[] = [
 
 /** 关卡文件个数，与 `EMERGENCY_LEVEL_PATHS.length` 一致。 */
 export const EMERGENCY_LEVEL_COUNT: number = EMERGENCY_LEVEL_PATHS.length;
+
+/**
+ * 与 `emergencyProcedureStore` 中错序时 Toast 一致，供视图在相同文案出现时播放失败音效。
+ */
+export const EMERGENCY_TOAST_FAIL_ORDER =
+  "顺序不正确，已归位并重新打乱，请重试。" as const;
