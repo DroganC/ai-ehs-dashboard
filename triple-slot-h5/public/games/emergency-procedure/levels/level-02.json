@@ -1,0 +1,19 @@
+{
+  "id": "level-02",
+  "title": "泄漏处置",
+  "bottomTip": "若顺序错误，牌会回到待选区；请按本场景流程排序。",
+  "hintEnabled": true,
+  "cards": [
+    { "id": "alarm", "label": "报警" },
+    { "id": "isolate", "label": "围闭" },
+    { "id": "collect", "label": "收容" },
+    { "id": "report", "label": "报告", "accent": "warning" }
+  ],
+  "slots": [
+    { "kind": "play" },
+    { "kind": "play" },
+    { "kind": "play" },
+    { "kind": "play" }
+  ],
+  "correctOrder": ["alarm", "isolate", "collect", "report"]
+}

@@ -1,5 +1,6 @@
 import { GameCode } from "../constant/gameCode";
 import type { GameEntry } from "./types";
+import EmergencyProcedureView from "./emergency-procedure/EmergencyProcedureView";
 import TripleSlotView from "./triple-slot/TripleSlotView";
 
 /**
@@ -11,6 +12,12 @@ export const games: GameEntry[] = [
     title: "三消槽位",
     description: "3×7 棋盘，槽位三消",
     Component: TripleSlotView,
+  },
+  {
+    code: GameCode.EMERGENCY_PROCEDURE,
+    title: "应急流程卡片",
+    description: "按正确顺序放置应急步骤",
+    Component: EmergencyProcedureView,
   },
 ];
 

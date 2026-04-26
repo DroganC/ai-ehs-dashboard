@@ -4,6 +4,8 @@
 export const GameCode = {
   /** 三消槽位 */
   TRIPLE_SLOT: "TRIPLE_SLOT",
+  /** 应急流程卡片 */
+  EMERGENCY_PROCEDURE: "EMERGENCY_PROCEDURE",
 } as const;
 
 export type GameCode = (typeof GameCode)[keyof typeof GameCode];
