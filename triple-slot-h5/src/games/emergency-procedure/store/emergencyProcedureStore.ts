@@ -88,6 +88,8 @@ export class EmergencyProcedureStore {
 
   flys: EpFly[] = [];
   private flyId = 0;
+  /** 在途 `loadLevelByIndex` 的 `fetch`；`dispose` 或新关加载时 `abort`，避免卸载后仍 `runInAction`。 */
+  private loadAbort: AbortController | null = null;
   /** 同 `TripleSlotStore.animEpoch`：在换关/卸载时递增以终止未完成的飞入 rAF。 */
   private animEpoch = 0;
   /**
@@ -132,24 +134,8 @@ export class EmergencyProcedureStore {
     return this.level?.correctOrder.length ?? 0;
   }
 
-  get playSlotsFilled(): number {
-    return this.slotPlacements.filter((s) => s !== null).length;
-  }
-
-  get hintSlotIndex(): number | null {
-    if (!this.level || this.level.hintEnabled === false) return null;
-    const i = this.slotPlacements.findIndex((s) => s === null);
-    return i === -1 ? null : i;
-  }
-
   get levelProgressLabel(): string {
     return `${this.currentLevelIndex + 1} / ${this.totalLevels}`;
-  }
-
-  get stepProgressLabel(): string {
-    const t = this.slotCount;
-    if (t === 0) return "0 / 0";
-    return `${this.playSlotsFilled} / ${t}`;
   }
 
   async startSession(): Promise<void> {
@@ -159,11 +145,19 @@ export class EmergencyProcedureStore {
     await this.loadLevelByIndex(0);
   }
 
+  private abortInflightLevelLoad(): void {
+    if (this.loadAbort) {
+      this.loadAbort.abort();
+      this.loadAbort = null;
+    }
+  }
+
   /**
    * 游戏页卸载时调用：清 Toast 与飞层，使 `rAF` 在下一拍检查 `animEpoch` 后退出；不整局重开（由再次进入时的 `startSession` 拉关）。
    */
   dispose(): void {
     this.bumpAnimEpoch();
+    this.abortInflightLevelLoad();
     if (this.toastTimer !== null) {
       window.clearTimeout(this.toastTimer);
       this.toastTimer = null;
@@ -223,15 +217,20 @@ export class EmergencyProcedureStore {
       });
       return;
     }
+    this.abortInflightLevelLoad();
+    const ac = new AbortController();
+    this.loadAbort = ac;
     const path = EMERGENCY_LEVEL_PATHS[index]!;
     runInAction(() => {
       this.phase = "loading";
       this.loadError = null;
     });
     try {
-      const res = await fetch(path, { cache: "no-store" });
+      const res = await fetch(path, { cache: "no-store", signal: ac.signal });
+      if (ac.signal.aborted) return;
       if (!res.ok) throw new Error(`无法加载：${res.status}`);
       const data: unknown = await res.json();
+      if (ac.signal.aborted) return;
       if (!validateConfig(data)) {
         throw new Error("关卡数据格式错误");
       }
@@ -242,6 +241,10 @@ export class EmergencyProcedureStore {
         this.toastText = null;
       });
     } catch (e) {
+      if (ac.signal.aborted) {
+        // 被 `dispose` 或更新关覆盖：不可 `bumpAnimEpoch`，避免误伤新一局之 `rAF`。
+        return;
+      }
       this.bumpAnimEpoch();
       const msg = e instanceof Error ? e.message : "加载失败";
       runInAction(() => {
@@ -250,6 +253,10 @@ export class EmergencyProcedureStore {
         this.levelMode = "none";
         this.phase = "loading";
       });
+    } finally {
+      if (this.loadAbort === ac) {
+        this.loadAbort = null;
+      }
     }
   }
 
@@ -547,6 +554,3 @@ export class EmergencyProcedureStore {
 }
 
 export const emergencyProcedureStore: EmergencyProcedureStore = new EmergencyProcedureStore();
-
-/** 兼容旧 import：`EpFly` 现定义于 `model/types`。 */
-export type { EpFly } from "../model/types";

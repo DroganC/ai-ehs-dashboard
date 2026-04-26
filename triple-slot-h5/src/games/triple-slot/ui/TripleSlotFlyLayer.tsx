@@ -1,8 +1,6 @@
 import type { ReactNode } from "react";
 import type { FlyLayerItem } from "../model/types";
 
-export type { FlyLayerItem as TripleSlotFly } from "../model/types";
-
 type TripleSlotFlyLayerProps = {
   items: readonly FlyLayerItem[];
 };

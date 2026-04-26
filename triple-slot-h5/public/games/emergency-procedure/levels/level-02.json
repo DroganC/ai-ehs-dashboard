@@ -3,7 +3,6 @@
   "mode": "grid",
   "title": "第二关 · 消防物资",
   "bottomTip": "对应第一关：报警→消防手报，断电→配电箱，灭火→灭火器，排烟→移动排烟机，疏散→指示图。满 5 张后判定；卡槽可点回格内。错误则全部归位并重排。",
-  "hintEnabled": true,
   "grid": { "rows": 3, "cols": 3 },
   "cards": [
     { "id": "l2-hand", "label": "消防手报", "accent": "danger" },

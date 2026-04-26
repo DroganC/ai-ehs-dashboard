@@ -33,7 +33,6 @@ export type EmergencyLevelConfig = {
   mode: EmergencyLevelMode;
   title: string;
   bottomTip?: string;
-  hintEnabled?: boolean;
   cards: CardDef[];
   /** 槽内顺序 = 与第一关步骤顺序一一对应（第 1 关为 5 步，第 2 关为 5 件物资 id）。 */
   correctOrder: string[];

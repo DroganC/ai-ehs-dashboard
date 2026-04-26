@@ -3,28 +3,8 @@
  * 不承载交互逻辑，交互在各自父级 `button` / 可点击格子上处理。
  */
 import type { ReactElement } from "react";
-import type { CardAccent, CardDef } from "../model/types";
-
-export function getSuitForAccent(accent: CardAccent | undefined): {
-  suit: string;
-  isRed: boolean;
-} {
-  switch (accent) {
-    case "danger":
-      return { suit: "♥", isRed: true };
-    case "warning":
-      return { suit: "♦", isRed: true };
-    default:
-      return { suit: "♠", isRed: false };
-  }
-}
-
-export function firstGrapheme(text: string): string {
-  const t = text.trim();
-  if (!t) return "?";
-  const arr = Array.from(t);
-  return arr[0] ?? "?";
-}
+import type { CardDef } from "../model/types";
+import { firstGrapheme, getSuitForAccent } from "./epCardUtils";
 
 /** 供 `button.ep-card` 复用，勿再包一层 `.ep-card` */
 export function EpPokerCardInner({ card }: { card: CardDef }): ReactElement {

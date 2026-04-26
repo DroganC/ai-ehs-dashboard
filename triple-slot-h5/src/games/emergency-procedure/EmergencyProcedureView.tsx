@@ -54,12 +54,12 @@ export default observer(function EmergencyProcedureView() {
   }, []);
 
   useEffect(() => {
-    void store.startSession();
+    void emergencyProcedureStore.startSession();
     return () => {
       clearSlotReturnTimer();
-      store.dispose();
+      emergencyProcedureStore.dispose();
     };
-  }, [store, clearSlotReturnTimer]);
+  }, [clearSlotReturnTimer]);
 
   useEffect(() => {
     setBgmRunning(phase === "playing" && !showRules);
@@ -185,9 +185,6 @@ export default observer(function EmergencyProcedureView() {
       </main>
 
       <footer className="ep__footer" aria-label="卡槽">
-        <div className="ep__drop-head">
-          <span className="ep__drop-step">{store.stepProgressLabel}</span>
-        </div>
         <div className="ep__slots" role="list">
           {Array.from({ length: store.slotCount }).map((_, i) => {
             const placed = store.slotPlacements[i];

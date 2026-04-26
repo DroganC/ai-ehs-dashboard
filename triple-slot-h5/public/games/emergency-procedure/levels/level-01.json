@@ -3,7 +3,6 @@
   "mode": "sequence",
   "title": "第一关 · 灭火流程",
   "bottomTip": "按正确顺序依次点击上方卡片，飞入下方卡槽；满 5 张后判定。卡槽内可点回上方。错误则全部归位并重排。",
-  "hintEnabled": true,
   "cards": [
     { "id": "alarm", "label": "报警", "accent": "danger" },
     { "id": "power", "label": "断电" },
