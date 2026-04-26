@@ -16,6 +16,7 @@ import type {
   EmergencyLevelConfig,
   EmergencyLevelMode,
   EpFly,
+  EpFlyCardSnapshot,
 } from "../model/types";
 
 function shuffleArray<T>(items: T[]): T[] {
@@ -278,7 +279,8 @@ export class EmergencyProcedureStore {
   }
 
   private async animateFly(
-    text: string,
+    variant: "poker" | "supply",
+    card: EpFlyCardSnapshot,
     from: DOMRect,
     to: DOMRect,
     animEpoch: number,
@@ -310,7 +312,13 @@ export class EmergencyProcedureStore {
             ...this.flys.filter((f) => f.id !== id),
             {
               id,
-              text,
+              variant,
+              card: {
+                id: card.id,
+                label: card.label,
+                accent: card.accent,
+                image: card.image,
+              },
               x: x - EP_FLY_HALF_W,
               y: y - EP_FLY_HALF_H,
               scale: 1 - 0.08 * e,
@@ -354,7 +362,7 @@ export class EmergencyProcedureStore {
 
     const el = getTargetSlot(k);
     if (!el) return;
-    const label = this.cardMap.get(cardId)?.label ?? "";
+    const c = this.cardMap.get(cardId);
     const toRect = el.getBoundingClientRect();
 
     const pickEpoch = this.animEpoch;
@@ -363,10 +371,21 @@ export class EmergencyProcedureStore {
     this.pendingFlights += 1;
 
     runInAction(() => {
-      this.pool = this.pool.filter((c) => c !== cardId);
+      this.pool = this.pool.filter((c0) => c0 !== cardId);
     });
 
-    await this.animateFly(label, fromRect, toRect, pickEpoch);
+    await this.animateFly(
+      "poker",
+      {
+        id: cardId,
+        label: c?.label ?? "",
+        accent: c?.accent,
+        image: c?.image,
+      },
+      fromRect,
+      toRect,
+      pickEpoch,
+    );
 
     if (this.animEpoch !== pickEpoch) {
       runInAction(() => {
@@ -398,7 +417,7 @@ export class EmergencyProcedureStore {
     if (k < 0) return;
     const el = getTargetSlot(k);
     if (!el) return;
-    const label = this.cardMap.get(cardId)?.label ?? "";
+    const c = this.cardMap.get(cardId);
     const toRect = el.getBoundingClientRect();
 
     const pickEpoch = this.animEpoch;
@@ -411,7 +430,18 @@ export class EmergencyProcedureStore {
       this.sourceCellByCardId.set(cardId, cellIndex);
     });
 
-    await this.animateFly(label, fromRect, toRect, pickEpoch);
+    await this.animateFly(
+      "supply",
+      {
+        id: cardId,
+        label: c?.label ?? "",
+        accent: c?.accent,
+        image: c?.image,
+      },
+      fromRect,
+      toRect,
+      pickEpoch,
+    );
 
     if (this.animEpoch !== pickEpoch) {
       runInAction(() => {

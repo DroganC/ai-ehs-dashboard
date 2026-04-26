@@ -2,10 +2,10 @@
  * 三消槽位根视图：编排子组件、绑定 MobX 与交互；**不**含游戏规则判断（在 `tripleSlotStore`）。
  *
  * 子组件职责简述：
- * - `TripleSlotHeader`：组进度 x/7 / 剩余可失败次数
+ * - `TripleSlotHeader`：组进度条 + 分段指示、剩余可失败次数
  * - `TripleSlotBoardGrid`：3×7 可点格，仅通过 `tileAt` 读数
  * - `TripleSlotSlotStrip`：底部 3 槽用于展示与飞入落点 `data-slot-idx`
- * - `TripleSlotToastGroup`：槽将满、失败回滚等旁白
+ * - `TripleSlotToastGroup`：失败回滚等警示
  * - `TripleSlotFlyLayer`：飞入 sprite 的绝对定位层
  * - `TripleSlotMilestoneOverlay` / `TripleSlotResultOverlay`：组进度秘籍与首屏/结算
  * - 背景乐与短音见 `public/games/triple-slot/assets/`，`useGameSfxController` 绑定
@@ -60,7 +60,6 @@ export default observer(function TripleSlotView() {
   const isPlaying =
     phase === "playing" && !showRules && milestoneGroup === null;
   const groupsCleared = tripleSlotStore.clearedCount / SLOT_CAPACITY;
-  const progressText = `${groupsCleared}/${MILESTONE_GROUP_COUNT}`;
 
   useEffect(() => {
     setBgmRunning(isPlaying);
@@ -92,7 +91,8 @@ export default observer(function TripleSlotView() {
   return (
     <div className="triple-slot">
       <TripleSlotHeader
-        progressText={progressText}
+        groupsCleared={groupsCleared}
+        groupTotal={MILESTONE_GROUP_COUNT}
         livesText={String(livesLeft)}
       />
       <main className="triple-slot__panel triple-slot__main">
@@ -110,11 +110,7 @@ export default observer(function TripleSlotView() {
         slotIcons={slotIcons}
         successAnim={tripleSlotStore.slotAnim === "success"}
       />
-      <TripleSlotToastGroup
-        almostFull={tripleSlotStore.slotHint === "almostFull"}
-        almostFullText="槽位即将满：下一张决定成败"
-        dangerText={dangerText}
-      />
+      <TripleSlotToastGroup dangerText={dangerText} />
       <TripleSlotFlyLayer items={tripleSlotStore.flys} />
 
       {showRules ? (

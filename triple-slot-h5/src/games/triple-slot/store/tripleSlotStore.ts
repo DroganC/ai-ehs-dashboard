@@ -19,7 +19,6 @@ import { easeInOutCubic } from "../model/easing";
 import type { FlyLayerItem, Pick, Tile } from "../model/types";
 
 type SlotAnim = "none" | "success" | "fail";
-type SlotHint = "none" | "almostFull";
 type ToastKind = "none" | "failRollback";
 
 /** 点选棋盘上的一张牌时 `pickTile` 的联合结果。 */
@@ -53,12 +52,10 @@ export class TripleSlotStore {
    */
   pendingFlights = 0;
   slotAnim: SlotAnim = "none";
-  slotHint: SlotHint = "none";
   toast: { kind: ToastKind; text: string } = { kind: "none", text: "" };
   flys: FlyLayerItem[] = [];
   private flyId = 0;
   private slotAnimTimer: number | null = null;
-  private hintTimer: number | null = null;
   private toastTimer: number | null = null;
   /**
    * 自增「动画世代」：在 `reset` / `dispose` 时递增，使进行中的 `requestAnimationFrame` 飞入在下一帧前退出，
@@ -103,10 +100,6 @@ export class TripleSlotStore {
       window.clearTimeout(this.slotAnimTimer);
       this.slotAnimTimer = null;
     }
-    if (this.hintTimer !== null) {
-      window.clearTimeout(this.hintTimer);
-      this.hintTimer = null;
-    }
     if (this.toastTimer !== null) {
       window.clearTimeout(this.toastTimer);
       this.toastTimer = null;
@@ -132,16 +125,11 @@ export class TripleSlotStore {
     this.nextCommitSeq = 0;
     this.commitBuffer.clear();
     this.slotAnim = "none";
-    this.slotHint = "none";
     this.toast = { kind: "none", text: "" };
     this.flys = [];
     if (this.slotAnimTimer !== null) {
       window.clearTimeout(this.slotAnimTimer);
       this.slotAnimTimer = null;
-    }
-    if (this.hintTimer !== null) {
-      window.clearTimeout(this.hintTimer);
-      this.hintTimer = null;
     }
     if (this.toastTimer !== null) {
       window.clearTimeout(this.toastTimer);
@@ -241,21 +229,6 @@ export class TripleSlotStore {
     }, durationMs);
   }
 
-  private setHint(hint: SlotHint, durationMs: number = 650): void {
-    this.slotHint = hint;
-    if (this.hintTimer !== null) {
-      window.clearTimeout(this.hintTimer);
-      this.hintTimer = null;
-    }
-    if (hint === "none") return;
-    this.hintTimer = window.setTimeout(() => {
-      runInAction(() => {
-        this.slotHint = "none";
-        this.hintTimer = null;
-      });
-    }, durationMs);
-  }
-
   private showToast(kind: ToastKind, text: string, durationMs: number = 950): void {
     this.toast = { kind, text };
     if (this.toastTimer !== null) {
@@ -298,8 +271,6 @@ export class TripleSlotStore {
           this.setSlotAnim("fail", SLOT_FEEDBACK_MS);
           this.showToast("failRollback", "匹配失败：已回滚，失败次数+1");
         }
-      } else if (this.slot.length === SLOT_CAPACITY - 1) {
-        this.setHint("almostFull");
       }
     }
   }

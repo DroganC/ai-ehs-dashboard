@@ -30,9 +30,57 @@
   &__header-row {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    gap: 12px;
-    flex-wrap: wrap;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /**
+   * 头栏最右侧：圆点组进度 + 剩余。
+   * 用 margin-left:auto 将整组顶到头部内容区最右（整行 100% 宽时等效于贴右缘），而非仅「块内右对齐」。
+   */
+  &__header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 auto;
+    min-width: 0;
+    margin-left: auto;
+  }
+
+  /** 7 个圆点：每完成一组三消点亮一个，填充绿色 */
+  &__progress-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex: 0 0 auto;
+  }
+
+  &__progress-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    background: var(--g-paper2);
+    border: 1.5px solid rgba(35, 24, 16, 0.22);
+    transition:
+      background 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+
+    &--done {
+      background: var(--g-success);
+      border-color: rgba(20, 90, 60, 0.5);
+      box-shadow: 0 0 0 1px rgba(46, 155, 111, 0.22);
+    }
   }
 
   &__stats {

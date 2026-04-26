@@ -46,13 +46,28 @@ export type EmergencyLevelConfig = {
 };
 
 /**
- * 全屏 `fixed` 飞入层中的一项。由 `EmergencyProcedureStore` 的 `animateFly` 与 `ui/EpFlyLayer` 共用，避免 Store 与 UI 循环依赖。
+ * 飞入动画一帧中携带的牌数据（与 `CardDef` 对齐的浅快照，不附加引用）。
+ * Store 在 `animateFly` 内从 `cardMap` 复制写入，供 `EpFlyLayer` 无 MobX 渲染。
+ */
+export type EpFlyCardSnapshot = Pick<CardDef, "id" | "label"> & {
+  accent?: CardAccent;
+  image?: string;
+};
+
+/**
+ * 全屏 `fixed` 飞入层中的一项。由 `EmergencyProcedureStore` 的 `animateFly` 与 `ui/EpFlyLayer` 共用，避免 UI import Store。
  */
 export type EpFly = {
+  /** 与 `emergencyProcedureStore.flyId` 拼接成的唯一 id，作 React `key` */
   id: string;
-  text: string;
+  /** 牌面左上角相对视口的 `left`（px），中心轨迹减 `EP_FLY_HALF_W` 得此值 */
   x: number;
+  /** 牌面左上角相对视口的 `top`（px） */
   y: number;
+  /** 飞入中略缩小，1 为起止近似大小 */
   scale: number;
   opacity: number;
+  /** 与待选区一致：第一关扑克面、第二关物资格 */
+  variant: "poker" | "supply";
+  card: EpFlyCardSnapshot;
 };

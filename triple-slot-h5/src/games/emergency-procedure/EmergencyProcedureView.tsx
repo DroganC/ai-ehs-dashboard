@@ -3,7 +3,7 @@
  *
  * 子组件职责：
  * - `EpSequencePool` / `EpSupplyGrid`：第 1 / 2 关中部棋盘，仅受控与转发点击
- * - `EpFlyLayer`：飞入字牌的绝对定位层
+ * - `EpFlyLayer`：飞入时与牌面一致的扑克/物资格绝对定位层
  * - `EpRulesOverlay`：首屏规则
  * 底栏槽位为内联列表（与 store 的 `returnFromSlotIndex` 强相关，避免过度拆分）。
  * 音轨见 `public/games/emergency-procedure/assets/`，`useGameSfxController` 绑定。
@@ -19,6 +19,7 @@ import { EpRulesOverlay } from "./ui/EpRulesOverlay";
 import { EpSequencePool } from "./ui/EpSequencePool";
 import { EpSupplyGrid } from "./ui/EpSupplyGrid";
 import { queryEpSlotByIndex } from "./utils/epSlotDom";
+import { EpPokerCardStatic, EpSupplyCardStatic } from "./ui/epCardStatic";
 import "./emergency-procedure-view.less";
 
 export default observer(function EmergencyProcedureView() {
@@ -145,7 +146,6 @@ export default observer(function EmergencyProcedureView() {
       <main className="ep__main" aria-label="操作区">
         {levelMode === "sequence" ? (
           <EpSequencePool
-            boardTitle="按正确顺序点击，飞入下方卡槽"
             cardIds={store.pool}
             getCard={(id) => store.cardMap.get(id)}
             canInteract={canInteract}
@@ -162,7 +162,6 @@ export default observer(function EmergencyProcedureView() {
           />
         ) : (
           <EpSupplyGrid
-            boardTitle="3×3 选择物资，与第一关步骤顺序一一对应"
             gridW={gridW}
             gridH={gridH}
             gridCellCount={gridLen}
@@ -185,9 +184,8 @@ export default observer(function EmergencyProcedureView() {
         )}
       </main>
 
-      <footer className="ep__footer" aria-label="卡槽与提示">
+      <footer className="ep__footer" aria-label="卡槽">
         <div className="ep__drop-head">
-          <span className="ep__drop-hint">槽位 1~5 对应上一步场景顺序</span>
           <span className="ep__drop-step">{store.stepProgressLabel}</span>
         </div>
         <div className="ep__slots" role="list">
@@ -202,6 +200,7 @@ export default observer(function EmergencyProcedureView() {
                 className="ep-slot ep__slot"
                 role="listitem"
               >
+                <span className="ep-slot__idx">{i + 1}</span>
                 <button
                   type="button"
                   className={`ep-slot__inner${
@@ -209,18 +208,22 @@ export default observer(function EmergencyProcedureView() {
                   }${returningSlotIndex === i ? " ep-slot__inner--returning" : ""}`}
                   data-ep-slot-idx={String(i)}
                   disabled={!isFilled || !canInteract || slotInteractionLocked}
+                  aria-label={
+                    card
+                      ? `槽位 ${String(i + 1)}，${card.label}，点击取回至棋盘上`
+                      : `空卡槽 ${String(i + 1)}`
+                  }
                   onClick={() => {
                     if (!isFilled) return;
                     handleSlotReturnClick(i);
                   }}
                 >
-                  <span className="ep-slot__num">{i + 1}</span>
-                  {card ? (
-                    <span
-                      className={`ep-slot__text ep-slot__text--${card.accent ?? "default"}`}
-                    >
-                      {card.label}
-                    </span>
+                  {card && isFilled ? (
+                    levelMode === "sequence" ? (
+                      <EpPokerCardStatic card={card} />
+                    ) : (
+                      <EpSupplyCardStatic card={card} showImagePlaceholder />
+                    )
                   ) : (
                     <span className="ep-slot__placeholder" />
                   )}
@@ -229,7 +232,6 @@ export default observer(function EmergencyProcedureView() {
             );
           })}
         </div>
-        {level.bottomTip ? <p className="ep__tip">⚠ {level.bottomTip}</p> : null}
       </footer>
 
       <EpFlyLayer items={store.flys} />

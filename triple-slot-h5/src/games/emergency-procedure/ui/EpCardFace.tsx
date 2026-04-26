@@ -1,10 +1,11 @@
 import type { ReactElement } from "react";
 import type { CardDef } from "../model/types";
+import { EpPokerCardInner, EpSupplyCardInner } from "./epCardStatic";
 
 export type EpCardFaceProps = {
   card: CardDef;
   /**
-   * `poker`：第一关角标 + 主文案；`supply`：上为图片位（可缺省），下为物资名。
+   * `poker`：第一关，扑克牌式角标 + 中央正文；`supply`：第二关，图区 + 牌底名条。
    */
   styleVariant: "poker" | "supply";
   /**
@@ -18,7 +19,7 @@ export type EpCardFaceProps = {
 };
 
 /**
- * 可点击的牌面：第一关为扑克风，第二关为物资格+文案。
+ * 可点击的牌面：主区域为扑克牌式白底、对角色角、花色；第二关为同外框的物资格。
  */
 export function EpCardFace({
   card,
@@ -28,8 +29,8 @@ export function EpCardFace({
   interactionDisabled = false,
   onSelect,
 }: EpCardFaceProps): ReactElement {
-  const accent = card.accent ?? "default";
   const isSupply = styleVariant === "supply";
+  const accent = card.accent ?? "default";
 
   return (
     <button
@@ -43,24 +44,11 @@ export function EpCardFace({
         onSelect();
       }}
     >
-      {!isSupply ? (
-        <>
-          <span className="ep-card__corner ep-card__corner--tl" aria-hidden>
-            K
-          </span>
-          <span className="ep-card__corner ep-card__corner--br" aria-hidden>
-            K
-          </span>
-        </>
-      ) : null}
-      {isSupply && showImagePlaceholder && !card.image ? (
-        <div className="ep-card__img-ph" aria-hidden>
-          图
-        </div>
-      ) : isSupply && card.image ? (
-        <img className="ep-card__img" src={card.image} alt="" />
-      ) : null}
-      <span className="ep-card__label">{card.label}</span>
+      {isSupply ? (
+        <EpSupplyCardInner card={card} showImagePlaceholder={showImagePlaceholder} />
+      ) : (
+        <EpPokerCardInner card={card} />
+      )}
     </button>
   );
 }
