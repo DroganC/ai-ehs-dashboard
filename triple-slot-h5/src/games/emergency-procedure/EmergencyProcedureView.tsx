@@ -1,11 +1,13 @@
 import { observer } from "mobx-react-lite";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { emergencyProcedureStore } from "./store/emergencyProcedureStore";
 import { EpCardFace } from "./ui/EpCardFace";
+import { EpRulesOverlay } from "./ui/EpRulesOverlay";
 import "./emergency-procedure-view.less";
 
 export default observer(function EmergencyProcedureView() {
   const store = emergencyProcedureStore;
+  const [showRules, setShowRules] = useState(true);
 
   useEffect(() => {
     void store.startSession();
@@ -13,6 +15,7 @@ export default observer(function EmergencyProcedureView() {
 
   const level = store.level;
   const phase = store.phase;
+  const canInteract = phase === "playing" && !showRules;
 
   if (phase === "loading") {
     if (store.loadError) {
@@ -60,6 +63,7 @@ export default observer(function EmergencyProcedureView() {
                 card={card}
                 selected={selected}
                 draggable
+                interactionDisabled={!canInteract}
                 onSelect={() => store.selectPoolCard(id)}
                 onDragStart={(e) => {
                   e.dataTransfer.setData("text/plain", id);
@@ -92,7 +96,7 @@ export default observer(function EmergencyProcedureView() {
             const canClick =
               isPlay &&
               placed === null &&
-              phase === "playing" &&
+              canInteract &&
               store.selectedPoolCardId !== null;
 
             return (
@@ -101,13 +105,13 @@ export default observer(function EmergencyProcedureView() {
                 className={`ep-slot${isHint ? " ep-slot--hint" : ""}`}
                 role="listitem"
                 onDragOver={(e) => {
-                  if (!isPlay || placed !== null) return;
+                  if (!canInteract || !isPlay || placed !== null) return;
                   e.preventDefault();
                   e.dataTransfer.dropEffect = "move";
                 }}
                 onDrop={(e) => {
                   e.preventDefault();
-                  if (!isPlay || placed !== null) return;
+                  if (!canInteract || !isPlay || placed !== null) return;
                   const id = e.dataTransfer.getData("text/plain");
                   if (id) store.attemptPlaceInSlot(i, id);
                 }}
@@ -146,6 +150,14 @@ export default observer(function EmergencyProcedureView() {
         </div>
       ) : null}
 
+      {showRules ? (
+        <EpRulesOverlay
+          onStart={() => {
+            setShowRules(false);
+          }}
+        />
+      ) : null}
+
       {phase === "levelCleared" ? (
         <div className="ep-overlay" role="dialog" aria-modal aria-labelledby="ep-win-title">
           <div className="ep-overlay__card">
@@ -167,7 +179,14 @@ export default observer(function EmergencyProcedureView() {
               全部通关
             </h2>
             <p className="ep-overlay__desc">两关已完成。刷新页面将从第一关重新开始。</p>
-            <button type="button" className="ep-btn ep-btn--primary" onClick={() => store.playAgainFromFirst()}>
+            <button
+              type="button"
+              className="ep-btn ep-btn--primary"
+              onClick={() => {
+                setShowRules(true);
+                store.playAgainFromFirst();
+              }}
+            >
               再玩一次
             </button>
           </div>
