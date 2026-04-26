@@ -1,3 +1,5 @@
+import type { ReactElement } from "react";
+
 export type TripleSlotHeaderProps = {
   levelName: string;
   progressText: string;
@@ -11,7 +13,7 @@ export function TripleSlotHeader({
   levelName,
   progressText,
   livesText,
-}: TripleSlotHeaderProps) {
+}: TripleSlotHeaderProps): ReactElement {
   return (
     <header className="triple-slot__panel triple-slot__header">
       <div className="triple-slot__header-row">

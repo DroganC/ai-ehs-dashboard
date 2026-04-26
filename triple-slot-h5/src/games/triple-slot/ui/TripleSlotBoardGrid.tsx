@@ -1,12 +1,14 @@
+import type { ReactElement } from "react";
 import type { Tile } from "../model/types";
 
-type TripleSlotBoardGridProps = {
+export type TripleSlotBoardGridProps = {
   rows: number;
   cols: number;
   label: string;
   tileAt: (row: number, col: number) => Tile | null;
   isPlaying: boolean;
-  onPick: (tileId: string, button: HTMLButtonElement) => void;
+  /** 点选后可能触发动画，故允许 `async` */
+  onPick: (tileId: string, button: HTMLButtonElement) => void | Promise<void>;
 };
 
 /**
@@ -19,7 +21,7 @@ export function TripleSlotBoardGrid({
   tileAt,
   isPlaying,
   onPick,
-}: TripleSlotBoardGridProps) {
+}: TripleSlotBoardGridProps): ReactElement {
   return (
     <section className="triple-slot__board" aria-label={label}>
       <div className="triple-slot__grid" role="grid" aria-label={label}>

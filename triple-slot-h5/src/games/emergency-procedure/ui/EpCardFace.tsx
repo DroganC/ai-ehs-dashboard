@@ -1,7 +1,7 @@
-import type { DragEvent } from "react";
+import type { DragEvent, ReactElement } from "react";
 import type { CardDef } from "../model/types";
 
-type EpCardFaceProps = {
+export type EpCardFaceProps = {
   card: CardDef;
   selected: boolean;
   draggable: boolean;
@@ -11,6 +11,9 @@ type EpCardFaceProps = {
   onDragStart: (e: DragEvent) => void;
 };
 
+/**
+ * 待选区单张「扑克风」牌面：角标 K + 中央应急步骤文案。
+ */
 export function EpCardFace({
   card,
   selected,
@@ -18,7 +21,7 @@ export function EpCardFace({
   interactionDisabled = false,
   onSelect,
   onDragStart,
-}: EpCardFaceProps) {
+}: EpCardFaceProps): ReactElement {
   const accent = card.accent ?? "default";
   return (
     <button

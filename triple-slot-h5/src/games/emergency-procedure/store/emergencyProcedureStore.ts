@@ -2,6 +2,11 @@ import { makeAutoObservable, runInAction } from "mobx";
 import { EMERGENCY_LEVEL_COUNT, EMERGENCY_LEVEL_PATHS } from "../config";
 import type { CardDef, EmergencyLevelConfig, SlotDef } from "../model/types";
 
+/**
+ * 本地 Fisher–Yates 洗牌，不修改入参中除返回副本外的原数组语义（返回新数组）。
+ * @param items 需洗牌的 `cardId` 列表
+ * @returns 新数组
+ */
 function shuffleArray<T>(items: T[]): T[] {
   const a = [...items];
   for (let i = a.length - 1; i > 0; i -= 1) {
@@ -11,10 +16,16 @@ function shuffleArray<T>(items: T[]): T[] {
   return a;
 }
 
+/** 第 `i` 格是否由玩家从池中放置。 */
 function isPlaySlot(slots: SlotDef[], i: number): boolean {
   return slots[i]?.kind === "play";
 }
 
+/**
+ * 关卡 JSON 最小校验：`slots` 与 `correctOrder` 等长，且预填位与 `correctOrder` 一致。
+ * @param raw `fetch` 后的解析结果
+ * @returns 类型保护为 `EmergencyLevelConfig` 时合法
+ */
 function validateConfig(raw: unknown): raw is EmergencyLevelConfig {
   if (!raw || typeof raw !== "object") return false;
   const o = raw as Record<string, unknown>;
@@ -30,8 +41,15 @@ function validateConfig(raw: unknown): raw is EmergencyLevelConfig {
   return true;
 }
 
+/**
+ * 流程：加载 / 可玩 / 单关通（待点下一关）/ 全通关。
+ * 无持久化，刷新后 `startSession` 自第一关重开。
+ */
 export type EpPhase = "loading" | "playing" | "levelCleared" | "allCleared";
 
+/**
+ * 应急流程卡片：多关、预填、池内洗牌、轻提示、拖放/点放校验（MobX）。
+ */
 export class EmergencyProcedureStore {
   phase: EpPhase = "loading";
   loadError: string | null = null;
@@ -49,10 +67,11 @@ export class EmergencyProcedureStore {
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
-  get totalLevels() {
+  get totalLevels(): number {
     return EMERGENCY_LEVEL_COUNT;
   }
 
+  /** 当前关 `id` → 展示定义。 */
   get cardMap(): Map<string, CardDef> {
     const m = new Map<string, CardDef>();
     if (!this.level) return m;
@@ -62,17 +81,17 @@ export class EmergencyProcedureStore {
     return m;
   }
 
-  get poolCount() {
+  get poolCount(): number {
     return this.pool.length;
   }
 
   /** 需玩家自行放置的槽位数。 */
-  get playSlotCount() {
+  get playSlotCount(): number {
     if (!this.level) return 0;
     return this.level.slots.filter((s) => s.kind === "play").length;
   }
 
-  get playSlotsFilled() {
+  get playSlotsFilled(): number {
     if (!this.level) return 0;
     let n = 0;
     for (let i = 0; i < this.level.slots.length; i += 1) {
@@ -84,7 +103,7 @@ export class EmergencyProcedureStore {
   /**
    * 轻提示：顺序上第一个空 play 槽（下标由小到大）。
    */
-  get hintSlotIndex() {
+  get hintSlotIndex(): number | null {
     if (!this.level || this.level.hintEnabled === false) return null;
     for (let i = 0; i < this.level.slots.length; i += 1) {
       if (isPlaySlot(this.level.slots, i) && this.slotPlacements[i] === null) return i;
@@ -92,24 +111,31 @@ export class EmergencyProcedureStore {
     return null;
   }
 
-  get levelProgressLabel() {
+  get levelProgressLabel(): string {
     return `${this.currentLevelIndex + 1} / ${this.totalLevels}`;
   }
 
-  get stepProgressLabel() {
+  get stepProgressLabel(): string {
     const total = this.playSlotCount;
     if (total === 0) return "0 / 0";
     return `${this.playSlotsFilled} / ${total}`;
   }
 
-  async startSession() {
+  /**
+   * 新会话：关下标归 0 并拉取 `level-01`。
+   */
+  async startSession(): Promise<void> {
     runInAction(() => {
       this.currentLevelIndex = 0;
     });
     await this.loadLevelByIndex(0);
   }
 
-  clearToastSoon(ms = 2200) {
+  /**
+   * Toast 在若干毫秒后自动消失。
+   * @param ms 延迟（毫秒），默认 2200
+   */
+  clearToastSoon(ms: number = 2200): void {
     if (this.toastTimer !== null) {
       window.clearTimeout(this.toastTimer);
     }
@@ -121,12 +147,12 @@ export class EmergencyProcedureStore {
     }, ms);
   }
 
-  private showToast(text: string) {
+  private showToast(text: string): void {
     this.toastText = text;
     this.clearToastSoon();
   }
 
-  private applyLevel(config: EmergencyLevelConfig) {
+  private applyLevel(config: EmergencyLevelConfig): void {
     this.level = config;
     this.slotPlacements = config.slots.map((s, i) => {
       if (s.kind === "prefill") return config.correctOrder[i] ?? s.cardId;
@@ -140,7 +166,11 @@ export class EmergencyProcedureStore {
     this.selectedPoolCardId = null;
   }
 
-  async loadLevelByIndex(index: number) {
+  /**
+   * 按 `EMERGENCY_LEVEL_PATHS` 下标加载一关。失败时 `loadError` + `phase` 为 `loading`。
+   * @param index 0 基下标
+   */
+  async loadLevelByIndex(index: number): Promise<void> {
     if (index < 0 || index >= EMERGENCY_LEVEL_PATHS.length) {
       runInAction(() => {
         this.loadError = "无效关卡";
@@ -176,20 +206,27 @@ export class EmergencyProcedureStore {
     }
   }
 
-  selectPoolCard(cardId: string) {
+  /**
+   * 在待选区切换当前选中牌（同牌再点取消）。
+   * @param cardId 必须在 `pool` 中
+   */
+  selectPoolCard(cardId: string): void {
     if (this.phase !== "playing" || !this.level) return;
     if (!this.pool.includes(cardId)) return;
     this.selectedPoolCardId = this.selectedPoolCardId === cardId ? null : cardId;
   }
 
-  clearSelection() {
+  /** 仅清除选中，不移除池中牌。 */
+  clearSelection(): void {
     this.selectedPoolCardId = null;
   }
 
   /**
-   * 将 `cardId` 放入第 `slotIndex` 格；可来自点选+点槽，或拖放带 id。
+   * 将 `cardId` 放入第 `slotIndex` 格；可来自点选+点槽，或拖放带 id（拖放时传第二参）。
+   * @param slotIndex 0 基槽下标
+   * @param cardId 未传时取 `selectedPoolCardId`（点槽流程）
    */
-  attemptPlaceInSlot(slotIndex: number, cardId?: string) {
+  attemptPlaceInSlot(slotIndex: number, cardId?: string): void {
     if (this.phase !== "playing" || !this.level) return;
     const id = cardId ?? this.selectedPoolCardId;
     if (id == null) return;
@@ -209,7 +246,7 @@ export class EmergencyProcedureStore {
     this.checkLevelWin();
   }
 
-  private checkLevelWin() {
+  private checkLevelWin(): void {
     if (!this.level) return;
     for (let i = 0; i < this.level.slots.length; i += 1) {
       if (isPlaySlot(this.level.slots, i) && this.slotPlacements[i] !== this.level.correctOrder[i]) {
@@ -225,15 +262,22 @@ export class EmergencyProcedureStore {
     });
   }
 
-  goToNextLevel() {
+  /**
+   * 在 `phase === "levelCleared"` 时拉取下一关；最后一关则不应出现在「下一关」路径（全通走 `allCleared`）。
+   */
+  goToNextLevel(): void {
     if (this.phase !== "levelCleared") return;
     const next = this.currentLevelIndex + 1;
     void this.loadLevelByIndex(next);
   }
 
-  playAgainFromFirst() {
+  /**
+   * 自第一关重开，供「再玩一次」等入口。无本地存档。
+   */
+  playAgainFromFirst(): void {
     void this.startSession();
   }
 }
 
-export const emergencyProcedureStore = new EmergencyProcedureStore();
+/** 单例，供 `EmergencyProcedureView` 使用。 */
+export const emergencyProcedureStore: EmergencyProcedureStore = new EmergencyProcedureStore();

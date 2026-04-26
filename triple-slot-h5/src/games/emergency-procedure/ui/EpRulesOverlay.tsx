@@ -1,15 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 
 const RULES_COUNTDOWN_SEC = 5;
 
-type EpRulesOverlayProps = {
+export type EpRulesOverlayProps = {
   onStart: () => void;
 };
 
 /**
  * 进入本局时展示说明（与三消同模式：非 antd、轻蒙层、倒计时后解锁开始）。
  */
-export function EpRulesOverlay({ onStart }: EpRulesOverlayProps) {
+export function EpRulesOverlay({ onStart }: EpRulesOverlayProps): ReactElement {
   const [secondsLeft, setSecondsLeft] = useState(RULES_COUNTDOWN_SEC);
 
   useEffect(() => {

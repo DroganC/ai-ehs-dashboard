@@ -1,17 +1,27 @@
 import { TYPE_POOL } from "./constants";
 import type { Tile, TileType } from "./types";
 
+/**
+ * 与 `public/games/triple-slot/levels/*.json` 对应的关卡结构。
+ * `types` 描述每种 `TileType` 的张数，展开后 `grid` 单元格一一摆牌（含洗牌）。
+ */
 export type LevelConfig = {
   id: string;
   name: string;
   grid: { rows: number; cols: number };
   types: { type: TileType; count: number }[];
   shuffle: boolean;
+  /** 非空时用于 `mulberry32` 固定随机序列，便于复现 */
   seed: string | null;
   failLimit: number;
 };
 
-function mulberry32(seed: number) {
+/**
+ * 可复现的 PRNG，返回 [0,1) 的伪随机数（mulberry32 算法）。
+ * @param seed 32 位无符号种子
+ * @returns 闭包，每次调用产生下一个随机数
+ */
+function mulberry32(seed: number): () => number {
   let t = seed >>> 0;
   return () => {
     t += 0x6d2b79f5;
@@ -21,7 +31,12 @@ function mulberry32(seed: number) {
   };
 }
 
-function seedToUint32(seedStr: string) {
+/**
+ * 将任意字符串散列为 32 位无符号整数，作 `mulberry32` 种子用。
+ * @param seedStr 关卡配置的 `seed` 字符串
+ * @returns 无符号 32 位种子
+ */
+function seedToUint32(seedStr: string): number {
   let h = 2166136261;
   for (let i = 0; i < seedStr.length; i++) {
     h ^= seedStr.charCodeAt(i);
@@ -30,11 +45,21 @@ function seedToUint32(seedStr: string) {
   return h >>> 0;
 }
 
-function randInt(rng: () => number, max: number) {
+/**
+ * 均匀整数 [0, max)
+ * @param max 上界（不包含）
+ */
+function randInt(rng: () => number, max: number): number {
   return Math.floor(rng() * max);
 }
 
-export function shuffleInPlace<T>(rng: () => number, arr: T[]) {
+/**
+ * Fisher–Yates 原地洗牌，使用调用方提供的 RNG（便于种子复现）。
+ * @param rng 返回 [0,1) 的函数
+ * @param arr 待洗牌数组（会被修改）
+ * @returns 同一份数组引用
+ */
+export function shuffleInPlace<T>(rng: () => number, arr: T[]): T[] {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = randInt(rng, i + 1);
     [arr[i], arr[j]] = [arr[j], arr[i]];
@@ -42,10 +67,16 @@ export function shuffleInPlace<T>(rng: () => number, arr: T[]) {
   return arr;
 }
 
-function shortId() {
+function shortId(): string {
   return Math.random().toString(36).slice(2, 8);
 }
 
+/**
+ * 由关卡配置生成棋盘上的 `Tile` 列表：按行优先填充 `grid`，牌序来自 `types` 展开与可选洗牌。
+ * @param level 已解析的关卡对象
+ * @returns 与 `rows * cols` 等长的牌数组
+ * @throws 若 `bag` 与格子数不一致可能产生 `undefined` 访问，依赖合法 JSON
+ */
 export function buildTilesFromLevel(level: LevelConfig): Tile[] {
   const rng =
     typeof level.seed === "string" && level.seed.length > 0

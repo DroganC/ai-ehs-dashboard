@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 export type TripleSlotResultKind = "win" | "lose";
 
-type TripleSlotResultOverlayProps = {
+export type TripleSlotResultOverlayProps = {
   kind: TripleSlotResultKind;
   message: ReactNode;
   actionLabel: string;
@@ -18,7 +18,7 @@ export function TripleSlotResultOverlay({
   message,
   actionLabel,
   onAction,
-}: TripleSlotResultOverlayProps) {
+}: TripleSlotResultOverlayProps): ReactElement {
   return (
     <div className="triple-slot__result-scrim" role="dialog" aria-modal="true" aria-label="游戏结算">
       <div

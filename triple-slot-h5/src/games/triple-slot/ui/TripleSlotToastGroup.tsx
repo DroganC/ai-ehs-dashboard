@@ -1,17 +1,19 @@
-type TripleSlotToastGroupProps = {
+import type { ReactElement } from "react";
+
+export type TripleSlotToastGroupProps = {
   almostFull: boolean;
   almostFullText: string;
   dangerText: string | null;
 };
 
 /**
- * 提示条：与棋盘、槽位无数据耦合。
+ * 提示条：与棋盘、槽位无数据耦合，仅做文案展示。
  */
 export function TripleSlotToastGroup({
   almostFull,
   almostFullText,
   dangerText,
-}: TripleSlotToastGroupProps) {
+}: TripleSlotToastGroupProps): ReactElement {
   return (
     <>
       {almostFull ? (

@@ -1,3 +1,6 @@
+/**
+ * 应急流程卡片根视图：加载多关、待选区与槽位区、规则首屏与通关层。逻辑在 `emergencyProcedureStore`（MobX）。
+ */
 import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
 import { emergencyProcedureStore } from "./store/emergencyProcedureStore";
@@ -85,8 +88,7 @@ export default observer(function EmergencyProcedureView() {
           {level.slots.map((def, i) => {
             const placed = store.slotPlacements[i];
             const isPlay = def.kind === "play";
-            const displayId = placed;
-            const card = displayId ? store.cardMap.get(displayId) : undefined;
+            const card = placed ? store.cardMap.get(placed) : undefined;
             const isHint =
               level.hintEnabled !== false &&
               isPlay &&

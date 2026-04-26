@@ -1,4 +1,4 @@
-// Block: triple-slot
+// 三消槽位（TRIPLE_SLOT）整页：BEM 块 `.triple-slot`，含棋盘/槽位/飞层/规则与结算层。
 
 .triple-slot {
   height: 100%;
@@ -269,6 +269,79 @@
     &:active {
       filter: brightness(0.97);
       transform: scale(0.99);
+    }
+  }
+
+  &__rules-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 14000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(15, 12, 8, 0.25);
+    pointer-events: auto;
+  }
+
+  &__rules-panel {
+    width: 100%;
+    max-width: 340px;
+    max-height: min(90dvh, 520px);
+    overflow-y: auto;
+    padding: 18px 16px 16px;
+    border-radius: var(--g-radius);
+    border: 1px solid var(--g-stroke);
+    background: var(--g-paper);
+    color: var(--g-text);
+    text-align: left;
+    box-shadow: 0 12px 40px rgba(35, 24, 16, 0.14);
+  }
+
+  &__rules-title {
+    margin: 0 0 12px;
+    font-size: 18px;
+    font-weight: 900;
+    text-align: center;
+    letter-spacing: 0.2px;
+  }
+
+  &__rules-list {
+    margin: 0 0 16px;
+    padding: 0 0 0 1.1em;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--g-text);
+  }
+
+  &__rules-list-item {
+    margin-bottom: 8px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  &__rules-btn {
+    width: 100%;
+    border: 1px solid var(--g-stroke);
+    border-radius: var(--g-radiusSm);
+    padding: 10px 14px;
+    font: inherit;
+    font-weight: 800;
+    background: var(--g-paper2);
+    color: var(--g-text);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    &:active:not(:disabled) {
+      filter: brightness(0.97);
+      transform: scale(0.99);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
     }
   }
 }

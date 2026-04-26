@@ -13,6 +13,7 @@ import { FAIL_LIMIT, SLOT_CAPACITY, TOTAL_TILES } from "../model/constants";
 import { easeInOutCubic } from "../model/easing";
 import type { Pick, Tile } from "../model/types";
 
+/** 飞入动画层单条项（与 `TripleSlotFlyLayer` / `TripleSlotFly` 字段一致） */
 type Fly = {
   id: string;
   icon: string;
@@ -21,10 +22,25 @@ type Fly = {
   scale: number;
   opacity: number;
 };
+
 type SlotAnim = "none" | "success" | "fail";
 type SlotHint = "none" | "almostFull";
 type ToastKind = "none" | "failRollback";
 
+/** 点选棋盘上的一张牌时 `pickTile` 的联合结果。 */
+export type PickTileResult =
+  | { ok: true; tile: Tile }
+  | { ok: false; reason: "ended" | "slot_full" | "invalid" };
+
+/** 槽内满 3 张时 `resolveSlot` 的判定结果。 */
+export type ResolveSlotResult =
+  | { kind: "noop" }
+  | { kind: "success" }
+  | { kind: "fail" };
+
+/**
+ * 三消槽位局内状态与动画调度（MobX）。棋盘 + 下槽 + 飞层坐标均在 store 内维护，视图只负责取 DOM 与展示。
+ */
 export class TripleSlotStore {
   level: LevelConfig | null = null;
   tiles: Tile[] = [];
@@ -53,30 +69,41 @@ export class TripleSlotStore {
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
-  get levelName() {
+  get levelName(): string {
     return this.level?.name ?? "01";
   }
 
-  get failLimit() {
+  /** 本关允许的最大失败回滚次数（来自关卡 JSON，缺省为常量） */
+  get failLimit(): number {
     return typeof this.level?.failLimit === "number"
       ? this.level.failLimit
       : FAIL_LIMIT;
   }
 
+  /** 进程：进行中 / 胜利 / 失败 */
   get phase(): "playing" | "win" | "lose" {
     if (this.clearedCount >= TOTAL_TILES) return "win";
     if (this.failCount >= this.failLimit) return "lose";
     return "playing";
   }
 
-  async loadLevel(path = TRIPLE_SLOT_DEFAULT_LEVEL) {
+  /**
+   * 拉取并存入关卡，随后 `reset` 为开局状态。
+   * @param path 相对站点根的关卡 JSON 路径
+   * @throws `fetch` 非 2xx 时抛错
+   */
+  async loadLevel(path: string = TRIPLE_SLOT_DEFAULT_LEVEL): Promise<void> {
     const res = await fetch(path, { cache: "no-store" });
     if (!res.ok) throw new Error(`Failed to load level: ${path}`);
     const level = (await res.json()) as LevelConfig;
     this.reset(level);
   }
 
-  reset(level?: LevelConfig) {
+  /**
+   * 开局或重开。传入新 `level` 时替换 `this.level` 并重新铺砖。
+   * @param level 新关卡；不传时沿用当前关（须已加载过）
+   */
+  reset(level?: LevelConfig): void {
     if (level) this.level = level;
     if (!this.level) throw new Error("Level not loaded");
     this.tiles = buildTilesFromLevel(this.level);
@@ -105,7 +132,10 @@ export class TripleSlotStore {
     }
   }
 
-  tileAt(row: number, col: number) {
+  /**
+   * 用于棋盘渲染：返回指定格上仍处于「在盘面或飞入中」的牌，否则 `null`。
+   */
+  tileAt(row: number, col: number): Tile | null {
     return (
       this.tiles.find(
         (t) =>
@@ -116,7 +146,11 @@ export class TripleSlotStore {
     );
   }
 
-  pickTile(tileId: string) {
+  /**
+   * 尝试从棋盘取走一张将飞入槽位的牌（不启动动画）。
+   * @param tileId 棋子 id
+   */
+  pickTile(tileId: string): PickTileResult {
     if (this.phase !== "playing")
       return { ok: false as const, reason: "ended" as const };
     if (this.slot.length + this.pendingFlights >= SLOT_CAPACITY)
@@ -129,7 +163,11 @@ export class TripleSlotStore {
     return { ok: true as const, tile };
   }
 
-  resolveSlot() {
+  /**
+   * 当槽内已有 3 张时做三消判定；不足 3 张则空操作。
+   * 成功则标记为 `cleared` 并清空槽；失败则三张飞回盘面并计失败一次。
+   */
+  resolveSlot(): ResolveSlotResult {
     if (this.slot.length !== SLOT_CAPACITY) return { kind: "noop" as const };
 
     const [a, b, c] = this.slot;
@@ -154,11 +192,11 @@ export class TripleSlotStore {
     return { kind: "fail" as const };
   }
 
-  get slotIcons() {
+  get slotIcons(): string[] {
     return this.slot.map((p) => p.icon);
   }
 
-  private setSlotAnim(anim: SlotAnim, durationMs = 220) {
+  private setSlotAnim(anim: SlotAnim, durationMs: number = 220): void {
     this.slotAnim = anim;
     if (this.slotAnimTimer !== null) {
       window.clearTimeout(this.slotAnimTimer);
@@ -173,7 +211,7 @@ export class TripleSlotStore {
     }, durationMs);
   }
 
-  private setHint(hint: SlotHint, durationMs = 650) {
+  private setHint(hint: SlotHint, durationMs: number = 650): void {
     this.slotHint = hint;
     if (this.hintTimer !== null) {
       window.clearTimeout(this.hintTimer);
@@ -188,7 +226,7 @@ export class TripleSlotStore {
     }, durationMs);
   }
 
-  private showToast(kind: ToastKind, text: string, durationMs = 950) {
+  private showToast(kind: ToastKind, text: string, durationMs: number = 950): void {
     this.toast = { kind, text };
     if (this.toastTimer !== null) {
       window.clearTimeout(this.toastTimer);
@@ -206,7 +244,7 @@ export class TripleSlotStore {
   /**
    * 按发牌序号依次提交到 slot；允许多段飞入并行完成，但入槽顺序与点击发牌顺序一致。
    */
-  private flushSlotCommits() {
+  private flushSlotCommits(): void {
     while (this.commitBuffer.has(this.nextCommitSeq)) {
       const tile = this.commitBuffer.get(this.nextCommitSeq)!;
       this.commitBuffer.delete(this.nextCommitSeq);
@@ -236,7 +274,7 @@ export class TripleSlotStore {
     }
   }
 
-  private animateFly(icon: string, from: DOMRect, to: DOMRect) {
+  private animateFly(icon: string, from: DOMRect, to: DOMRect): Promise<void> {
     const id = String(++this.flyId);
     const startX = from.left + from.width / 2;
     const startY = from.top + from.height / 2;
@@ -278,13 +316,16 @@ export class TripleSlotStore {
   }
 
   /**
-   * @param getSlotCell 由视图根据预定槽下标取 DOM，保证飞入目标与入槽顺序一致
+   * 从棋盘点击到入槽的完整流程：飞行动画、按序提交到槽、并可能触发三消。
+   * @param tileId 被点选的棋子 id
+   * @param from 起点包围盒（按钮 `getBoundingClientRect()`）
+   * @param getSlotCell 由视图按「当前飞入将占据的槽下标」返回对应 DOM 元素
    */
   async performPick(
     tileId: string,
     from: DOMRect,
     getSlotCell: (index: number) => HTMLElement | null,
-  ) {
+  ): Promise<void> {
     const pickRes = this.pickTile(tileId);
     if (!pickRes.ok) return;
 
@@ -310,4 +351,5 @@ export class TripleSlotStore {
   }
 }
 
-export const tripleSlotStore = new TripleSlotStore();
+/** 单例：供 `TripleSlotView` 与测试共享同一局内状态。 */
+export const tripleSlotStore: TripleSlotStore = new TripleSlotStore();

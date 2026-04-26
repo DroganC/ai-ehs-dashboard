@@ -1,5 +1,8 @@
+/**
+ * 三消槽位：棋盘点选飞入、槽内三消、胜负结算与规则首屏。状态在 `tripleSlotStore`（MobX），本文件只做编排与事件绑定。
+ */
 import { observer } from "mobx-react-lite";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   BOARD_COLS,
   BOARD_ROWS,
@@ -7,16 +10,20 @@ import {
   TOTAL_TILES,
 } from "./model/constants";
 import { TRIPLE_SLOT_DEFAULT_LEVEL } from "./config";
+import type { Tile } from "./model/types";
 import { tripleSlotStore } from "./store/tripleSlotStore";
 import { TripleSlotBoardGrid } from "./ui/TripleSlotBoardGrid";
 import { TripleSlotFlyLayer } from "./ui/TripleSlotFlyLayer";
 import { TripleSlotHeader } from "./ui/TripleSlotHeader";
 import { TripleSlotSlotStrip } from "./ui/TripleSlotSlotStrip";
 import { TripleSlotResultOverlay } from "./ui/TripleSlotResultOverlay";
+import { TripleSlotRulesOverlay } from "./ui/TripleSlotRulesOverlay";
 import { TripleSlotToastGroup } from "./ui/TripleSlotToastGroup";
 import "./triple-slot-view.less";
 
 export default observer(function TripleSlotView() {
+  const [showRules, setShowRules] = useState(true);
+
   useEffect(() => {
     void tripleSlotStore.loadLevel(TRIPLE_SLOT_DEFAULT_LEVEL);
   }, []);
@@ -28,10 +35,10 @@ export default observer(function TripleSlotView() {
     0,
     tripleSlotStore.failLimit - tripleSlotStore.failCount,
   );
-  const isPlaying = phase === "playing";
+  const isPlaying = phase === "playing" && !showRules;
   const progressText = `${tripleSlotStore.clearedCount}/${TOTAL_TILES}`;
 
-  async function handlePick(tileId: string, btn: HTMLButtonElement) {
+  async function handlePick(tileId: string, btn: HTMLButtonElement): Promise<void> {
     const tile = tripleSlotStore.tiles.find((t) => t.id === tileId);
     if (!btn || !tile) return;
     const from = btn.getBoundingClientRect();
@@ -42,7 +49,7 @@ export default observer(function TripleSlotView() {
     );
   }
 
-  function tileAt(row: number, col: number) {
+  function tileAt(row: number, col: number): Tile | null {
     return tripleSlotStore.tileAt(row, col);
   }
 
@@ -77,6 +84,14 @@ export default observer(function TripleSlotView() {
         dangerText={dangerText}
       />
       <TripleSlotFlyLayer items={tripleSlotStore.flys} />
+
+      {showRules ? (
+        <TripleSlotRulesOverlay
+          onStart={() => {
+            setShowRules(false);
+          }}
+        />
+      ) : null}
 
       {phase === "win" ? (
         <TripleSlotResultOverlay
