@@ -5,37 +5,42 @@
 /** 卡片标题颜色语义（与 Less BEM 修饰符 `ep-card--*` 对应）。 */
 export type CardAccent = "danger" | "warning" | "default";
 
-/** 单张流程牌（待选区与已落槽的展示用）。 */
+/**
+ * 单张牌：第一关为流程文字，第二关为消防物资名（`image` 可后续接 URL）。
+ */
 export type CardDef = {
-  /** 在 `correctOrder` 与 `prefill` 中引用的稳定 id。 */
   id: string;
-  /** 面额主文案。 */
   label: string;
-  /** 高亮为警示/强调色，可缺省为默认黑字。 */
   accent?: CardAccent;
+  /** 第二关物资图 URL；未配置时由 UI 使用缺省色块。 */
+  image?: string;
 };
 
 /**
- * 槽位格定义。`prefill` 为开局已摆放且不在待选池；`play` 需玩家从池中放置。
+ * 关卡模式：
+ * - `sequence`：5 步流程牌在上方池中乱序，依序**点击**飞入 5 槽，满槽后整体验证。
+ * - `grid`：3×3 物资格 + 5 槽，与第一关场景一一对应，满槽后整体验证。
  */
-export type SlotDef =
-  | { kind: "prefill"; cardId: string }
-  | { kind: "play" };
+export type EmergencyLevelMode = "sequence" | "grid";
 
 /**
- * 一关的完整数据：槽列与 `correctOrder` 一一对齐，长度必须相等。
+ * 一关的完整数据。
+ * - `sequence`：`correctOrder` 为 5 个 id；不使用 `gridOrder`。
+ * - `grid`：必须 `grid: {rows, cols}` 与 `gridOrder` 长度 9，且 `correctOrder` 为 5 个与第一关序位对应的物资 id。
  */
 export type EmergencyLevelConfig = {
   id: string;
+  mode: EmergencyLevelMode;
   title: string;
-  /** 深棕色区域底部黄字提示。 */
   bottomTip?: string;
-  /**
-   * 是否显示「第一空位」高亮。显式为 `false` 可关闭轻提示；缺省为开。
-   */
   hintEnabled?: boolean;
   cards: CardDef[];
-  slots: SlotDef[];
-  /** 与 `slots` 等长，第 i 位槽应放置的 `CardDef.id`（与预填格一致） */
+  /** 槽内顺序 = 与第一关步骤顺序一一对应（第 1 关为 5 步，第 2 关为 5 件物资 id）。 */
   correctOrder: string[];
+  /**
+   * 仅 `grid` 模式：3×3 行优先排列的 9 个 `card id`；含 4 张干扰项时仍须填满 9 格。
+   */
+  gridOrder?: string[];
+  /** 仅 `grid` 模式，默认 3×3。 */
+  grid?: { rows: number; cols: number };
 };

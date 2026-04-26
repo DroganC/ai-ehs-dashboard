@@ -1,7 +1,8 @@
 {
   "id": "level-01",
-  "title": "应急流程卡片",
-  "bottomTip": "顺序错误卡片将归位，请按应急流程排序。",
+  "mode": "sequence",
+  "title": "第一关 · 灭火流程",
+  "bottomTip": "按正确顺序依次点击上方卡片，飞入下方卡槽；满 5 张后判定。卡槽内可点回上方。错误则全部归位并重排。",
   "hintEnabled": true,
   "cards": [
     { "id": "alarm", "label": "报警", "accent": "danger" },
@@ -9,13 +10,6 @@
     { "id": "extinguish", "label": "灭火" },
     { "id": "vent", "label": "排烟" },
     { "id": "evacuate", "label": "疏散", "accent": "warning" }
-  ],
-  "slots": [
-    { "kind": "prefill", "cardId": "alarm" },
-    { "kind": "play" },
-    { "kind": "play" },
-    { "kind": "play" },
-    { "kind": "play" }
   ],
   "correctOrder": ["alarm", "power", "extinguish", "vent", "evacuate"]
 }

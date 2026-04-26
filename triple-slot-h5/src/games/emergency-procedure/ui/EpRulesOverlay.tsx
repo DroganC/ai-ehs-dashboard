@@ -7,7 +7,7 @@ export type EpRulesOverlayProps = {
 };
 
 /**
- * 进入本局时展示说明（与三消同模式：非 antd、轻蒙层、倒计时后解锁开始）。
+ * 首屏：规则说明，倒计时后解锁「开始游戏」。
  */
 export function EpRulesOverlay({ onStart }: EpRulesOverlayProps): ReactElement {
   const [secondsLeft, setSecondsLeft] = useState(RULES_COUNTDOWN_SEC);
@@ -38,18 +38,15 @@ export function EpRulesOverlay({ onStart }: EpRulesOverlayProps): ReactElement {
         <h2 className="ep-rules-title">游戏说明</h2>
         <ul className="ep-rules-list">
           <li className="ep-rules-list-item">
-            将<strong>待选区</strong>的卡片按<strong>正确应急步骤顺序</strong>放入下方槽位；可
-            <strong>点击</strong>先选牌再点空槽，或在桌面端<strong>拖放</strong>到对应槽内。
+            <strong>第一关：</strong>上方有 5 张流程牌（乱序），请按<strong>正确灭火流程顺序</strong>依次
+            <strong>点击</strong>，牌会飞入下方 5 个卡槽。全部放满后按整体顺序判定；错误则全部归位并重新打乱。卡槽内可再点击将牌取回上面。
           </li>
           <li className="ep-rules-list-item">
-            若放错位置，该牌会留在待选区，请按本场景流程重试。底部有简要提示，可按关卡配置。
+            <strong>第二关：</strong>3×3 物资格，请按<strong>与第一关相同的步骤顺序</strong>，选择对应
+            消防手报、配电箱、灭火器、移动排烟机、指示图 等。同样满 5 槽判定。错误时全部归位并打乱。卡槽可点回格内。
           </li>
           <li className="ep-rules-list-item">
-            开启轻提示时，会高亮当前顺序上<strong>第一个空的槽位</strong>，<strong>不</strong>直接提示应放哪张牌。
-          </li>
-          <li className="ep-rules-list-item">
-            本游戏共 <strong>2</strong> 关，从第 1 关起顺序闯关；<strong>刷新或重新进入</strong>将从第
-            1 关重开，无存档。
+            第一关通后将提示进入下一关；两关都通为恭喜通关。无进度保存，离开即自第一关重开。
           </li>
         </ul>
         <button

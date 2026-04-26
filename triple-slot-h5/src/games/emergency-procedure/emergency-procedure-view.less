@@ -6,6 +6,8 @@
   min-height: 100vh;
   box-sizing: border-box;
   padding: 16px 16px 28px;
+  display: flex;
+  flex-direction: column;
   background: linear-gradient(180deg, #c9a574 0%, #b88955 42%, #8b5a2b 100%);
   color: #2a1a0d;
   font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -41,6 +43,14 @@
   font-size: 1.1rem;
 }
 
+.ep__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .ep__badge {
   background: #3b2412;
   color: #f5e6c8;
@@ -48,6 +58,116 @@
   padding: 6px 12px;
   border-radius: 999px;
   white-space: nowrap;
+}
+
+.ep__badge--sub {
+  background: #1a0f08;
+  color: #e2c18b;
+}
+
+.ep__main {
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ep__board-title {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #3b2412;
+  text-align: center;
+}
+
+.ep__board {
+  background: #e8d4b8;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  border-radius: 18px;
+  padding: 14px 12px 16px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ep__pool--seq {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 12px;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.ep__pool-item {
+  width: 46%;
+  max-width: 180px;
+  min-width: 0;
+}
+
+.ep__grid-9 {
+  display: grid;
+  gap: 8px;
+  max-width: 360px;
+  margin: 0 auto;
+  aspect-ratio: 1;
+}
+
+.ep__grid-cell {
+  min-height: 0;
+}
+
+.ep__grid-cell--empty {
+  border: 2px dashed rgba(59, 36, 18, 0.25);
+  border-radius: 10px;
+  min-height: 80px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.ep__grid-cell-inner {
+  height: 100%;
+  min-height: 80px;
+}
+
+.ep__grid-cell-inner .ep-card {
+  width: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+  padding: 8px 6px 10px;
+}
+
+.ep__footer {
+  flex-shrink: 0;
+  background: #3b2412;
+  color: #f5e6c8;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  border-radius: 18px;
+  padding: 12px 14px 14px;
+}
+
+.ep__fly {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 13000;
+  width: 46px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #2a1a0d;
+  background: #fffef8;
+  border: 1px solid rgba(59, 36, 18, 0.35);
+  border-radius: 8px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ep__panel {
@@ -75,6 +195,7 @@
   border-radius: 12px;
   background: #fffdf8;
   min-height: 96px;
+  width: 100%;
   padding: 18px 12px 14px;
   box-shadow: 0 4px 0 #c4b09a, 0 8px 18px rgba(0, 0, 0, 0.12);
   cursor: pointer;
@@ -99,6 +220,45 @@
   &--default .ep-card__label {
     color: #1f1f1f;
   }
+
+  &--poker {
+    min-height: 96px;
+  }
+
+  &--supply {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    min-height: 0;
+  }
+
+  &--supply .ep-card__label {
+    font-size: 0.78rem;
+    line-height: 1.25;
+  }
+}
+
+.ep-card__img {
+  width: 100%;
+  max-height: 40px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.ep-card__img-ph {
+  width: 100%;
+  min-height: 40px;
+  max-height: 48px;
+  border-radius: 6px;
+  background: linear-gradient(145deg, #d4c4b0, #a89884);
+  color: rgba(40, 24, 12, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .ep-card__corner {
@@ -124,10 +284,13 @@
   letter-spacing: 0.02em;
 }
 
+/* 保留旧名以便若有残留引用；主布局已用 `.ep__footer` */
 .ep__drop-panel {
   background: #3b2412;
   color: #f5e6c8;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  border-radius: 18px;
+  padding: 12px 14px 14px;
 }
 
 .ep__drop-head {
@@ -204,8 +367,12 @@
     color: #1f1f1f;
   }
 
-  &:disabled {
-    opacity: 0.85;
+  &--empty:disabled {
+    opacity: 0.8;
+  }
+
+  &--filled:disabled {
+    opacity: 1;
   }
 }
 
@@ -229,10 +396,16 @@
 }
 
 .ep-slot__text {
-  font-size: 0.95rem;
+  font-size: 0.68rem;
   font-weight: 600;
   line-height: 1.2;
   text-align: center;
+  max-width: 100%;
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .ep-slot__text--danger {

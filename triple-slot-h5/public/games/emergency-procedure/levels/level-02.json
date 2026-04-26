@@ -1,19 +1,23 @@
 {
   "id": "level-02",
-  "title": "泄漏处置",
-  "bottomTip": "若顺序错误，牌会回到待选区；请按本场景流程排序。",
+  "mode": "grid",
+  "title": "第二关 · 消防物资",
+  "bottomTip": "对应第一关：报警→消防手报，断电→配电箱，灭火→灭火器，排烟→移动排烟机，疏散→指示图。满 5 张后判定；卡槽可点回格内。错误则全部归位并重排。",
   "hintEnabled": true,
+  "grid": { "rows": 3, "cols": 3 },
   "cards": [
-    { "id": "alarm", "label": "报警" },
-    { "id": "isolate", "label": "围闭" },
-    { "id": "collect", "label": "收容" },
-    { "id": "report", "label": "报告", "accent": "warning" }
+    { "id": "l2-hand", "label": "消防手报", "accent": "danger" },
+    { "id": "l2-elec", "label": "配电箱" },
+    { "id": "l2-ext", "label": "灭火器" },
+    { "id": "l2-vent", "label": "移动排烟机" },
+    { "id": "l2-exit", "label": "消防疏散指示图", "accent": "warning" },
+    { "id": "d1", "label": "消火栓" },
+    { "id": "d2", "label": "消防水带" },
+    { "id": "d3", "label": "应急照明" },
+    { "id": "d4", "label": "口哨" }
   ],
-  "slots": [
-    { "kind": "play" },
-    { "kind": "play" },
-    { "kind": "play" },
-    { "kind": "play" }
+  "gridOrder": [
+    "l2-hand", "l2-elec", "l2-ext", "l2-vent", "l2-exit", "d1", "d2", "d3", "d4"
   ],
-  "correctOrder": ["alarm", "isolate", "collect", "report"]
+  "correctOrder": ["l2-hand", "l2-elec", "l2-ext", "l2-vent", "l2-exit"]
 }
