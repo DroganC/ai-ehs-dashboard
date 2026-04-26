@@ -2,7 +2,7 @@ import { TYPE_POOL } from "./constants";
 import type { Tile, TileType } from "./types";
 
 /**
- * 与 `public/games/triple-slot/levels/*.json` 对应的关卡结构。
+ * 本局游戏布局配置（`config.ts` 中 `TRIPLE_SLOT_GAME_CONFIG`）；非多关卡牌阵。
  * `types` 描述每种 `TileType` 的张数，展开后 `grid` 单元格一一摆牌（含洗牌）。
  */
 export type LevelConfig = {

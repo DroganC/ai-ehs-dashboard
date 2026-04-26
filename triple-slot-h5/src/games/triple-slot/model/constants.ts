@@ -8,6 +8,8 @@ export const BOARD_ROWS = 7;
 export const TOTAL_TILES = BOARD_COLS * BOARD_ROWS;
 /** 下方卡槽可容牌数，满则尝试三消判定 */
 export const SLOT_CAPACITY = 3;
+/** 本关可完成的三消组数（`TOTAL_TILES / SLOT_CAPACITY`），用于「第 X 组密集」进度 */
+export const MILESTONE_GROUP_COUNT = TOTAL_TILES / SLOT_CAPACITY;
 /** 未配置关卡时的默认失败次数上限 */
 export const FAIL_LIMIT = 3;
 

@@ -2,12 +2,12 @@
  * 三消槽位根视图：编排子组件、绑定 MobX 与交互；**不**含游戏规则判断（在 `tripleSlotStore`）。
  *
  * 子组件职责简述：
- * - `TripleSlotHeader`：关名 / 清牌进度 / 剩余步数
+ * - `TripleSlotHeader`：组进度 x/7 / 剩余可失败次数
  * - `TripleSlotBoardGrid`：3×7 可点格，仅通过 `tileAt` 读数
  * - `TripleSlotSlotStrip`：底部 3 槽用于展示与飞入落点 `data-slot-idx`
  * - `TripleSlotToastGroup`：槽将满、失败回滚等旁白
  * - `TripleSlotFlyLayer`：飞入 sprite 的绝对定位层
- * - `TripleSlotRulesOverlay` / `TripleSlotResultOverlay`：首屏与结算
+ * - `TripleSlotMilestoneOverlay` / `TripleSlotResultOverlay`：组进度秘籍与首屏/结算
  * - 背景乐与短音见 `public/games/triple-slot/assets/`，`useGameSfxController` 绑定
  */
 import { observer } from "mobx-react-lite";
@@ -16,17 +16,18 @@ import { useGameSfxController } from "../hooks/useGameSfxController";
 import {
   BOARD_COLS,
   BOARD_ROWS,
+  MILESTONE_GROUP_COUNT,
   SLOT_CAPACITY,
   TOTAL_TILES,
 } from "./model/constants";
 import { TRIPLE_SLOT_SFX } from "./audio/paths";
-import { TRIPLE_SLOT_DEFAULT_LEVEL } from "./config";
 import type { Tile } from "./model/types";
 import { tripleSlotStore } from "./store/tripleSlotStore";
 import { TripleSlotBoardGrid } from "./ui/TripleSlotBoardGrid";
 import { TripleSlotFlyLayer } from "./ui/TripleSlotFlyLayer";
 import { TripleSlotHeader } from "./ui/TripleSlotHeader";
 import { TripleSlotSlotStrip } from "./ui/TripleSlotSlotStrip";
+import { TripleSlotMilestoneOverlay } from "./ui/TripleSlotMilestoneOverlay";
 import { TripleSlotResultOverlay } from "./ui/TripleSlotResultOverlay";
 import { TripleSlotRulesOverlay } from "./ui/TripleSlotRulesOverlay";
 import { TripleSlotToastGroup } from "./ui/TripleSlotToastGroup";
@@ -41,7 +42,7 @@ export default observer(function TripleSlotView() {
   );
 
   useEffect(() => {
-    void tripleSlotStore.loadLevel(TRIPLE_SLOT_DEFAULT_LEVEL);
+    tripleSlotStore.reset();
     return () => {
       tripleSlotStore.dispose();
     };
@@ -55,8 +56,11 @@ export default observer(function TripleSlotView() {
     0,
     tripleSlotStore.failLimit - tripleSlotStore.failCount,
   );
-  const isPlaying = phase === "playing" && !showRules;
-  const progressText = `${tripleSlotStore.clearedCount}/${TOTAL_TILES}`;
+  const milestoneGroup = tripleSlotStore.pendingMilestoneGroup;
+  const isPlaying =
+    phase === "playing" && !showRules && milestoneGroup === null;
+  const groupsCleared = tripleSlotStore.clearedCount / SLOT_CAPACITY;
+  const progressText = `${groupsCleared}/${MILESTONE_GROUP_COUNT}`;
 
   useEffect(() => {
     setBgmRunning(isPlaying);
@@ -88,7 +92,6 @@ export default observer(function TripleSlotView() {
   return (
     <div className="triple-slot">
       <TripleSlotHeader
-        levelName={tripleSlotStore.levelName}
         progressText={progressText}
         livesText={String(livesLeft)}
       />
@@ -122,7 +125,16 @@ export default observer(function TripleSlotView() {
         />
       ) : null}
 
-      {phase === "win" ? (
+      {milestoneGroup != null ? (
+        <TripleSlotMilestoneOverlay
+          groupIndex={milestoneGroup}
+          onContinue={() => {
+            tripleSlotStore.dismissMilestone();
+          }}
+        />
+      ) : null}
+
+      {phase === "win" && milestoneGroup == null ? (
         <TripleSlotResultOverlay
           kind="win"
           message={`通关成功：你已清空 ${TOTAL_TILES} 张卡片。`}
@@ -130,7 +142,7 @@ export default observer(function TripleSlotView() {
           onAction={() => tripleSlotStore.reset()}
         />
       ) : null}
-      {phase === "lose" ? (
+      {phase === "lose" && milestoneGroup == null ? (
         <TripleSlotResultOverlay
           kind="lose"
           message={`挑战失败：失败次数达到 ${tripleSlotStore.failLimit} 次。`}

@@ -1,7 +1,7 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import type { LevelConfig } from "../model/level";
 import { buildTilesFromLevel } from "../model/level";
-import { TRIPLE_SLOT_DEFAULT_LEVEL } from "../config";
+import { TRIPLE_SLOT_GAME_CONFIG } from "../config";
 import {
   FLY_ARC_PX,
   FLY_DURATION_MS,
@@ -9,7 +9,12 @@ import {
   FLY_HALF_W,
   SLOT_FEEDBACK_MS,
 } from "../model/animation";
-import { FAIL_LIMIT, SLOT_CAPACITY, TOTAL_TILES } from "../model/constants";
+import {
+  FAIL_LIMIT,
+  MILESTONE_GROUP_COUNT,
+  SLOT_CAPACITY,
+  TOTAL_TILES,
+} from "../model/constants";
 import { easeInOutCubic } from "../model/easing";
 import type { FlyLayerItem, Pick, Tile } from "../model/types";
 
@@ -38,6 +43,11 @@ export class TripleSlotStore {
   slot: Pick[] = [];
   clearedCount = 0;
   failCount = 0;
+  /**
+   * 刚完成第几组三消时弹出秘籍层（1..MILESTONE_GROUP_COUNT）；`null` 表示无待处理弹窗。
+   * 与 `TripleSlotMilestoneOverlay` 绑定，点「继续游戏」后 `dismissMilestone` 清空。
+   */
+  pendingMilestoneGroup: number | null = null;
   /**
    * 已点选、正在飞入但尚未入 slot 的笔数。与 pickTile 判满：slot 占用 + 本计数 >= SLOT 即不可再点。
    */
@@ -69,11 +79,7 @@ export class TripleSlotStore {
     this.animEpoch += 1;
   }
 
-  get levelName(): string {
-    return this.level?.name ?? "01";
-  }
-
-  /** 本关允许的最大失败回滚次数（来自关卡 JSON，缺省为常量） */
+  /** 本关允许的最大失败回滚次数（来自局配置，缺省为常量） */
   get failLimit(): number {
     return typeof this.level?.failLimit === "number"
       ? this.level.failLimit
@@ -88,20 +94,8 @@ export class TripleSlotStore {
   }
 
   /**
-   * 拉取并存入关卡，随后 `reset` 为开局状态。
-   * @param path 相对站点根的关卡 JSON 路径
-   * @throws `fetch` 非 2xx 时抛错
-   */
-  async loadLevel(path: string = TRIPLE_SLOT_DEFAULT_LEVEL): Promise<void> {
-    const res = await fetch(path, { cache: "no-store" });
-    if (!res.ok) throw new Error(`Failed to load level: ${path}`);
-    const level = (await res.json()) as LevelConfig;
-    this.reset(level);
-  }
-
-  /**
    * 游戏页卸载或切换路由时调用：注销槽位动效定时器、废掉未结束的飞入 `rAF`，避免卸载后改写字段。
-   * 不重置整局；再次进入时由视图 `loadLevel` 拉关。
+   * 不重置整局；再次进入时由视图 `reset()` 开局。
    */
   dispose(): void {
     this.bumpAnimEpoch();
@@ -123,17 +117,16 @@ export class TripleSlotStore {
   }
 
   /**
-   * 开局或重开。传入新 `level` 时替换 `this.level` 并重新铺砖。
-   * @param level 新关卡；不传时沿用当前关（须已加载过）
+   * 开局或重开。未传入配置时使用 `TRIPLE_SLOT_GAME_CONFIG`（单局、无多关）。
    */
   reset(level?: LevelConfig): void {
     this.bumpAnimEpoch();
-    if (level) this.level = level;
-    if (!this.level) throw new Error("Level not loaded");
+    this.level = level ?? TRIPLE_SLOT_GAME_CONFIG;
     this.tiles = buildTilesFromLevel(this.level);
     this.slot = [];
     this.clearedCount = 0;
     this.failCount = 0;
+    this.pendingMilestoneGroup = null;
     this.pendingFlights = 0;
     this.nextPickSeq = 0;
     this.nextCommitSeq = 0;
@@ -198,12 +191,18 @@ export class TripleSlotStore {
     const success = a.type === b.type && b.type === c.type;
 
     if (success) {
-      for (const p of this.slot) {
-        const tile = this.tiles.find((t) => t.id === p.tileId);
-        if (tile) tile.state = "cleared";
-      }
-      this.slot = [];
-      this.clearedCount += SLOT_CAPACITY;
+      runInAction(() => {
+        for (const p of this.slot) {
+          const tile = this.tiles.find((t) => t.id === p.tileId);
+          if (tile) tile.state = "cleared";
+        }
+        this.slot = [];
+        this.clearedCount += SLOT_CAPACITY;
+        const g = this.clearedCount / SLOT_CAPACITY;
+        if (g >= 1 && g <= MILESTONE_GROUP_COUNT) {
+          this.pendingMilestoneGroup = g;
+        }
+      });
       return { kind: "success" as const };
     }
 
@@ -218,6 +217,13 @@ export class TripleSlotStore {
 
   get slotIcons(): string[] {
     return this.slot.map((p) => p.icon);
+  }
+
+  /** 关闭「第 X 组密集」秘籍弹层；通关时关闭最后一组后再展示结算。 */
+  dismissMilestone(): void {
+    runInAction(() => {
+      this.pendingMilestoneGroup = null;
+    });
   }
 
   private setSlotAnim(anim: SlotAnim, durationMs: number = 220): void {
