@@ -6,21 +6,20 @@
  */
 
 /** Duration of the "tile flies into slot" animation. */
-export const FLY_DURATION_MS = 420
+export const FLY_DURATION_MS = 420;
 
 /**
  * Arc height for the fly animation.
  * Positive means it peaks upward mid-flight.
  */
-export const FLY_ARC_PX = 26
+export const FLY_ARC_PX = 26;
 
 /**
- * `.game__fly` is a fixed-size element; we animate its center and then offset
+ * `.triple-slot__fly`（BEM: triple-slot 块 + __fly 元素）为定尺寸，动画先算中心再 translate
  * to top-left for `transform: translate(x, y)`.
  */
-export const FLY_HALF_W = 23
-export const FLY_HALF_H = 17
+export const FLY_HALF_W = 23;
+export const FLY_HALF_H = 17;
 
 /** How long slot feedback (success/fail) should be kept. */
-export const SLOT_FEEDBACK_MS = 220
-
+export const SLOT_FEEDBACK_MS = 220;

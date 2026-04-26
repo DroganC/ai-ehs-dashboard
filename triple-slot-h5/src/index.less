@@ -1,13 +1,15 @@
+// Block: 全局无块类名，仅设计令牌与 h5-app 根壳；:root 为 CSS 变量非 BEM 部分
+
 :root {
   color-scheme: light;
 
   /* table / background */
-  --g-bg: #F6F2EA;
-  --g-bgAccent: #EFE6D6;
+  --g-bg: #f6f2ea;
+  --g-bgAccent: #efe6d6;
 
   /* paper */
-  --g-paper: #FFFCF6;
-  --g-paper2: #F8F1E4;
+  --g-paper: #fffcf6;
+  --g-paper2: #f8f1e4;
   --g-stroke: rgba(35, 24, 16, 0.14);
 
   /* text */
@@ -15,9 +17,9 @@
   --g-muted: rgba(35, 24, 16, 0.62);
 
   /* state */
-  --g-primary: #2D6CDF;
-  --g-success: #2E9B6F;
-  --g-danger: #E24A4A;
+  --g-primary: #2d6cdf;
+  --g-success: #2e9b6f;
+  --g-danger: #e24a4a;
 
   /* radius */
   --g-radius: 18px;
@@ -42,26 +44,32 @@ body {
   min-width: 320px;
   overflow: hidden;
   background:
-    radial-gradient(900px 560px at 20% 0%, rgba(45, 108, 223, .10), transparent 58%),
-    radial-gradient(900px 560px at 80% 0%, rgba(226, 74, 74, .08), transparent 58%),
-    radial-gradient(1000px 680px at 50% 110%, rgba(46, 155, 111, .08), transparent 60%),
+    radial-gradient(900px 560px at 20% 0%, rgba(45, 108, 223, 0.1), transparent 58%),
+    radial-gradient(900px 560px at 80% 0%, rgba(226, 74, 74, 0.08), transparent 58%),
+    radial-gradient(1000px 680px at 50% 110%, rgba(46, 155, 111, 0.08), transparent 60%),
     linear-gradient(180deg, var(--g-bgAccent), var(--g-bg));
   color: var(--g-text);
-  font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  font:
+    14px/1.4 ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "PingFang SC",
+    "Noto Sans SC",
+    "Microsoft YaHei",
+    sans-serif;
 }
 
-#root {
+// Block: h5-app（挂于 #root）
+.h5-app {
   height: 100dvh;
   overflow: hidden;
 }
 
 * {
   box-sizing: border-box;
-
 }
 
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {
